@@ -1,0 +1,56 @@
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { AttendanceType, AttendanceStatus } from '../common/enums';
+import { Patient } from './patient.entity';
+
+@Entity('scp_attendance')
+export class Attendance {
+    @PrimaryGeneratedColumn()
+    id: number;
+
+    @Column()
+    patient_id: number;
+
+    @ManyToOne(() => Patient, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'patient_id' })
+    patient: Patient;
+
+    @Column({
+        type: 'enum',
+        enum: AttendanceType
+    })
+    type: AttendanceType;
+
+    @Column({
+        type: 'enum',
+        enum: AttendanceStatus,
+        default: AttendanceStatus.SCHEDULED
+    })
+    status: AttendanceStatus;
+
+    @Column({ type: 'date' })
+    scheduled_date: Date;
+
+    @Column({ type: 'time' })
+    scheduled_time: string;
+
+    @Column({ type: 'timestamp', nullable: true })
+    checked_in_at: Date;
+
+    @Column({ type: 'timestamp', nullable: true })
+    started_at: Date;
+
+    @Column({ type: 'timestamp', nullable: true })
+    completed_at: Date;
+
+    @Column({ type: 'timestamp', nullable: true })
+    cancelled_at: Date;
+
+    @Column({ type: 'text', nullable: true })
+    notes: string;
+
+    @CreateDateColumn()
+    created_at: Date;
+
+    @UpdateDateColumn()
+    updated_at: Date;
+}

@@ -1,73 +1,179 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
-
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+# MVP Center Backend
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+The MVP Center Backend is a robust NestJS application designed to serve as the backend for a spiritual center management system. It provides a comprehensive API for managing patient records, scheduling appointments, and tracking treatments.
 
-## Installation
+## Features
+
+- 🏥 Patient Management
+- 📅 Attendance Scheduling
+- ✅ Treatment Records
+- 📊 Schedule Settings
+- 🔒 Data Validation & Security
+- 🔄 TypeORM Integration
+
+## 🚀 Technologies
+
+- NestJS
+- TypeScript
+- PostgreSQL
+- TypeORM
+- Docker
+- Jest
+
+## 📋 Prerequisites
+
+- Node.js (v18 or higher)
+- PostgreSQL
+- Docker and Docker Compose
+- npm or yarn
+
+## 🔧 Installation
+
+1. Clone the repository
 
 ```bash
-$ npm install
+git clone <repository-url>
+cd mvp-center-backend
 ```
 
-## Running the app
+2. Install dependencies
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm install
 ```
 
-## Test
+3. Environment Setup
 
 ```bash
-# unit tests
-$ npm run test
+# Copy the example environment file
+cp .env.example .env
+
+# Edit the .env file with your database credentials
+```
+
+4. Start the Database
+
+```bash
+docker-compose up -d
+```
+
+5. Run Migrations
+
+```bash
+npm run migration:run
+```
+
+## 🏃‍♂️ Running the Application
+
+```bash
+# Development mode
+npm run start:dev
+
+# Production mode
+npm run build
+npm run start:prod
+```
+
+## 🧪 Testing
+
+```bash
+# Unit tests
+npm run test
 
 # e2e tests
-$ npm run test:e2e
+npm run test:e2e
 
-# test coverage
-$ npm run test:cov
+# Test coverage
+npm run test:cov
 ```
 
-## Support
+## 📚 API Documentation
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### Endpoints
 
-## Stay in touch
+#### Attendances
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+| Method | Endpoint           | Description           |
+| ------ | ------------------ | --------------------- |
+| POST   | `/attendances`     | Create new attendance |
+| GET    | `/attendances`     | List all attendances  |
+| GET    | `/attendances/:id` | Get attendance by ID  |
+| PATCH  | `/attendances/:id` | Update attendance     |
+| DELETE | `/attendances/:id` | Delete attendance     |
+
+##### Request/Response Examples
+
+###### Create Attendance
+
+```json
+// POST /attendances
+// Request
+{
+  "patient_id": 1,
+  "type": "FIRST_TIME",
+  "scheduled_date": "2025-07-22",
+  "scheduled_time": "14:30",
+  "notes": "First consultation"
+}
+
+// Response (201 Created)
+{
+  "id": 1,
+  "patient_id": 1,
+  "type": "FIRST_TIME",
+  "status": "SCHEDULED",
+  "scheduled_date": "2025-07-22",
+  "scheduled_time": "14:30",
+  "notes": "First consultation",
+  "created_at": "2025-07-22T14:30:00.000Z",
+  "updated_at": "2025-07-22T14:30:00.000Z"
+}
+```
+
+## 📁 Project Structure
+
+```
+src/
+├── controllers/        # Route controllers (attendance.controller.ts, etc.)
+├── services/          # Business logic (attendance.service.ts, etc.)
+├── entities/          # TypeORM entities (attendance.entity.ts, etc.)
+├── dtos/             # Data Transfer Objects (attendance.dto.ts, etc.)
+├── transformers/     # Data transformers (attendance.transformer.ts, etc.)
+├── repositories/     # Custom repositories
+├── migrations/       # Database migrations
+└── config/          # Configuration files
+```
+
+## 🔄 Data Flow
+
+1. Client Request → Controller
+2. Controller validates input using DTOs
+3. Service processes business logic
+4. Repository handles data operations
+5. Transformer formats response
+6. Controller returns response
+
+## 🔐 Environment Variables
+
+```env
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_USER=postgres
+DATABASE_PASSWORD=yourpassword
+DATABASE_NAME=mvp_center
+PORT=3000
+NODE_ENV=development
+```
+
+## 📝 Additional Notes
+
+- All dates are handled in ISO format (YYYY-MM-DD)
+- Times are stored in 24-hour format (HH:mm)
+- IDs are numeric and auto-incrementing
+- Responses are transformed using dedicated transformer classes
 
 ## License
 
-Nest is [MIT licensed](LICENSE).
+[MIT licensed](LICENSE)

@@ -21,16 +21,12 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"patient_id\": 1,\n  \"type\": \"FIRST_TIME\",\n  \"scheduled_date\": \"2025-07-22\",\n  \"scheduled_time\": \"14:30\",\n  \"notes\": \"First consultation\"\n}"
+							"raw": "{\n  \"patient_id\": 1,\n  \"type\": \"SPIRITUAL\",\n  \"scheduled_date\": \"2025-07-22\",\n  \"scheduled_time\": \"14:30\",\n  \"notes\": \"First consultation\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/attendances",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"attendances"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["attendances"]
 						},
 						"description": "Create a new attendance record"
 					},
@@ -43,12 +39,8 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/attendances",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"attendances"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["attendances"]
 						},
 						"description": "Get all attendance records"
 					},
@@ -61,13 +53,8 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/attendances/1",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"attendances",
-								"1"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["attendances", "1"]
 						},
 						"description": "Get a specific attendance record by ID"
 					},
@@ -89,13 +76,8 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/attendances/1",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"attendances",
-								"1"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["attendances", "1"]
 						},
 						"description": "Update an attendance record"
 					},
@@ -108,13 +90,8 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/attendances/1",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"attendances",
-								"1"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["attendances", "1"]
 						},
 						"description": "Delete an attendance record"
 					},
@@ -122,6 +99,302 @@
 				}
 			],
 			"description": "Attendance management endpoints"
+		},
+		{
+			"name": "Treatment Records",
+			"item": [
+				{
+					"name": "Create Treatment Record",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"attendance_id\": 1,\n  \"food\": \"Avoid dairy products\",\n  \"water\": \"Drink 2L of fluidized water daily\",\n  \"ointments\": \"Apply chamomile ointment before bed\",\n  \"light_bath\": true,\n  \"rod\": false,\n  \"spiritual_treatment\": true,\n  \"return_in_weeks\": 2,\n  \"notes\": \"Patient showed improvement in energy levels\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/treatment-records",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-records"]
+						},
+						"description": "Create a new treatment record"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Treatment Records",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/treatment-records",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-records"]
+						},
+						"description": "Get all treatment records"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Treatment Record by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/treatment-records/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-records", "1"]
+						},
+						"description": "Get a specific treatment record by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Treatment Record by Attendance ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/treatment-records/attendance/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-records", "attendance", "1"]
+						},
+						"description": "Get treatment record by attendance ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Treatment Record",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"food\": \"Updated food recommendations\",\n  \"water\": \"Updated water recommendations\",\n  \"ointments\": \"Updated ointment recommendations\",\n  \"notes\": \"Updated treatment notes\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/treatment-records/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-records", "1"]
+						},
+						"description": "Update a treatment record"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Treatment Record",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/treatment-records/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-records", "1"]
+						},
+						"description": "Delete a treatment record"
+					},
+					"response": []
+				}
+			],
+			"description": "Treatment Records management endpoints"
+		},
+		{
+			"name": "Patients",
+			"item": [
+				{
+					"name": "Create Patient",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Doe\",\n  \"phone\": \"11999999999\",\n  \"email\": \"john.doe@example.com\",\n  \"birthdate\": \"1990-01-01\",\n  \"priority\": \"NORMAL\",\n  \"notes\": \"First time patient\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/patients",
+							"host": ["{{baseUrl}}"],
+							"path": ["patients"]
+						},
+						"description": "Create a new patient"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Patients",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/patients",
+							"host": ["{{baseUrl}}"],
+							"path": ["patients"]
+						},
+						"description": "Get all patients"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Patient by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/patients/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["patients", "1"]
+						},
+						"description": "Get a specific patient by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Patient",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"11988888888\",\n  \"email\": \"john.doe.updated@example.com\",\n  \"notes\": \"Updated patient information\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/patients/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["patients", "1"]
+						},
+						"description": "Update a patient"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Patient",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/patients/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["patients", "1"]
+						},
+						"description": "Delete a patient"
+					},
+					"response": []
+				}
+			],
+			"description": "Patient management endpoints"
+		},
+		{
+			"name": "Schedule Settings",
+			"item": [
+				{
+					"name": "Create Schedule Setting",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"day_of_week\": 1,\n  \"start_time\": \"09:00\",\n  \"end_time\": \"17:00\",\n  \"slot_duration_minutes\": 30,\n  \"is_available\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/schedule-settings",
+							"host": ["{{baseUrl}}"],
+							"path": ["schedule-settings"]
+						},
+						"description": "Create a new schedule setting"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Schedule Settings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/schedule-settings",
+							"host": ["{{baseUrl}}"],
+							"path": ["schedule-settings"]
+						},
+						"description": "Get all schedule settings"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Schedule Setting by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/schedule-settings/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["schedule-settings", "1"]
+						},
+						"description": "Get a specific schedule setting by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Schedule Setting",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"start_time\": \"10:00\",\n  \"end_time\": \"18:00\",\n  \"is_available\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/schedule-settings/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["schedule-settings", "1"]
+						},
+						"description": "Update a schedule setting"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Schedule Setting",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/schedule-settings/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["schedule-settings", "1"]
+						},
+						"description": "Delete a schedule setting"
+					},
+					"response": []
+				}
+			],
+			"description": "Schedule Settings management endpoints"
 		}
 	],
 	"event": [
@@ -129,18 +402,14 @@
 			"listen": "prerequest",
 			"script": {
 				"type": "text/javascript",
-				"exec": [
-					""
-				]
+				"exec": [""]
 			}
 		},
 		{
 			"listen": "test",
 			"script": {
 				"type": "text/javascript",
-				"exec": [
-					""
-				]
+				"exec": [""]
 			}
 		}
 	],

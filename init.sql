@@ -76,18 +76,67 @@ CREATE TABLE scp_attendance (
 -- Detailed treatment records and recommendations
 CREATE TABLE scp_treatment_record (
     id SERIAL PRIMARY KEY,
-    attendance_id INTEGER REFERENCES scp_attendance (id) ON DELETE CASCADE,
+    attendance_id INTEGER REFERENCES scp_attendance (id) ON DELETE CASCADE UNIQUE,
     food TEXT,
     water TEXT,
     ointments TEXT,
     light_bath BOOLEAN DEFAULT false,
     rod BOOLEAN DEFAULT false,
     spiritual_treatment BOOLEAN DEFAULT false,
-    return_in_weeks INTEGER,
+    return_in_weeks INTEGER CHECK (
+        return_in_weeks > 0
+        AND return_in_weeks <= 52
+    ),
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Function to ensure one treatment record per attendance
+CREATE OR REPLACE FUNCTION check_one_treatment_record_per_attendance()
+RETURNS TRIGGER AS $$
+DECLARE
+    attendance_exists BOOLEAN;
+    attendance_status scp_attendance.status%TYPE;
+    existing_record RECORD;
+BEGIN
+    -- Check if attendance exists
+    SELECT EXISTS(
+        SELECT 1 FROM scp_attendance WHERE id = NEW.attendance_id
+    ) INTO attendance_exists;
+
+    IF NOT attendance_exists THEN
+        RAISE EXCEPTION 'Cannot create treatment record: Attendance with ID % does not exist', NEW.attendance_id;
+    END IF;
+
+    -- Check attendance status
+    SELECT status INTO attendance_status
+    FROM scp_attendance
+    WHERE id = NEW.attendance_id;
+
+    IF attendance_status = 'cancelled' THEN
+        RAISE EXCEPTION 'Cannot create treatment record: Attendance (ID: %) is cancelled', NEW.attendance_id;
+    END IF;
+
+    -- Check for existing treatment record
+    SELECT * INTO existing_record
+    FROM scp_treatment_record
+    WHERE attendance_id = NEW.attendance_id;
+
+    IF FOUND THEN
+        RAISE EXCEPTION 'Cannot create treatment record: Attendance (ID: %) already has a treatment record (ID: %)',
+            NEW.attendance_id, existing_record.id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to enforce one treatment record per attendance
+CREATE TRIGGER ensure_one_treatment_record_per_attendance
+    BEFORE INSERT ON scp_treatment_record
+    FOR EACH ROW
+    EXECUTE FUNCTION check_one_treatment_record_per_attendance();
 
 -- Operational hours and capacity configuration
 CREATE TABLE scp_schedule_setting (

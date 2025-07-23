@@ -1,10 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TreatmentRecordController } from './treatment-record.controller';
 import { TreatmentRecordService } from '../services/treatment-record.service';
-import { CreateTreatmentRecordDto, UpdateTreatmentRecordDto } from '../dtos/treatment-record.dto';
+import {
+  CreateTreatmentRecordDto,
+  UpdateTreatmentRecordDto,
+} from '../dtos/treatment-record.dto';
 import { TreatmentRecord } from '../entities/treatment-record.entity';
 import { Attendance } from '../entities/attendance.entity';
 import { AttendanceType, AttendanceStatus } from '../common/enums';
+import {
+  DuplicateTreatmentRecordException,
+  InvalidAttendanceStatusException,
+  InvalidReturnWeeksException,
+} from '../common/exceptions/treatment-record.exceptions';
 
 describe('TreatmentRecordController', () => {
   let controller: TreatmentRecordController;
@@ -34,6 +42,7 @@ describe('TreatmentRecordController', () => {
     created_at: new Date(),
     updated_at: new Date(),
     patient: null,
+    treatmentRecord: null,
   };
 
   const mockTreatmentRecord: TreatmentRecord = {
@@ -63,7 +72,9 @@ describe('TreatmentRecordController', () => {
       ],
     }).compile();
 
-    controller = module.get<TreatmentRecordController>(TreatmentRecordController);
+    controller = module.get<TreatmentRecordController>(
+      TreatmentRecordController,
+    );
     service = module.get<TreatmentRecordService>(TreatmentRecordService);
   });
 
@@ -90,14 +101,47 @@ describe('TreatmentRecordController', () => {
 
     it('should create a treatment record', async () => {
       jest.spyOn(service, 'create').mockResolvedValue(mockTreatmentRecord);
-      
+
       const result = await controller.create(createDto);
-      
+
       expect(service.create).toHaveBeenCalledWith(createDto);
       expect(result).toBeDefined();
       expect(result.id).toBe(mockTreatmentRecord.id);
       expect(result.attendance_id).toBe(mockTreatmentRecord.attendance_id);
       expect(result.food).toBe(mockTreatmentRecord.food);
+    });
+
+    it('should handle DuplicateTreatmentRecordException', async () => {
+      jest
+        .spyOn(service, 'create')
+        .mockRejectedValue(new DuplicateTreatmentRecordException(1, 1));
+
+      await expect(controller.create(createDto)).rejects.toThrow(
+        DuplicateTreatmentRecordException,
+      );
+    });
+
+    it('should handle InvalidReturnWeeksException', async () => {
+      const invalidDto = { ...createDto, return_in_weeks: 53 };
+      jest
+        .spyOn(service, 'create')
+        .mockRejectedValue(new InvalidReturnWeeksException(53));
+
+      await expect(controller.create(invalidDto)).rejects.toThrow(
+        InvalidReturnWeeksException,
+      );
+    });
+
+    it('should handle InvalidAttendanceStatusException', async () => {
+      jest
+        .spyOn(service, 'create')
+        .mockRejectedValue(
+          new InvalidAttendanceStatusException(1, 'cancelled'),
+        );
+
+      await expect(controller.create(createDto)).rejects.toThrow(
+        InvalidAttendanceStatusException,
+      );
     });
   });
 
@@ -105,9 +149,9 @@ describe('TreatmentRecordController', () => {
     it('should return an array of treatment records', async () => {
       const treatmentRecords = [mockTreatmentRecord];
       jest.spyOn(service, 'findAll').mockResolvedValue(treatmentRecords);
-      
+
       const result = await controller.findAll();
-      
+
       expect(service.findAll).toHaveBeenCalled();
       expect(result).toEqual(treatmentRecords);
       expect(Array.isArray(result)).toBe(true);
@@ -119,9 +163,9 @@ describe('TreatmentRecordController', () => {
   describe('findOne', () => {
     it('should return a treatment record by id', async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(mockTreatmentRecord);
-      
+
       const result = await controller.findOne('1');
-      
+
       expect(service.findOne).toHaveBeenCalledWith(1);
       expect(result).toBeDefined();
       expect(result.id).toBe(mockTreatmentRecord.id);
@@ -131,10 +175,12 @@ describe('TreatmentRecordController', () => {
 
   describe('findByAttendance', () => {
     it('should return a treatment record by attendance id', async () => {
-      jest.spyOn(service, 'findByAttendance').mockResolvedValue(mockTreatmentRecord);
-      
+      jest
+        .spyOn(service, 'findByAttendance')
+        .mockResolvedValue(mockTreatmentRecord);
+
       const result = await controller.findByAttendance('1');
-      
+
       expect(service.findByAttendance).toHaveBeenCalledWith(1);
       expect(result).toBeDefined();
       expect(result.id).toBe(mockTreatmentRecord.id);
@@ -164,9 +210,9 @@ describe('TreatmentRecordController', () => {
         updated_at: new Date(),
       };
       jest.spyOn(service, 'update').mockResolvedValue(updatedRecord);
-      
+
       const result = await controller.update('1', updateDto);
-      
+
       expect(service.update).toHaveBeenCalledWith(1, updateDto);
       expect(result).toBeDefined();
       expect(result.id).toBe(updatedRecord.id);
@@ -179,17 +225,17 @@ describe('TreatmentRecordController', () => {
   describe('remove', () => {
     it('should remove a treatment record', async () => {
       jest.spyOn(service, 'remove').mockResolvedValue(undefined);
-      
+
       await controller.remove('1');
-      
+
       expect(service.remove).toHaveBeenCalledWith(1);
     });
 
     it('should return void when successfully removed', async () => {
       jest.spyOn(service, 'remove').mockResolvedValue(undefined);
-      
+
       const result = await controller.remove('1');
-      
+
       expect(result).toBeUndefined();
     });
   });

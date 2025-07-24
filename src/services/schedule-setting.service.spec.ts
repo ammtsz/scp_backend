@@ -4,7 +4,10 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { ScheduleSetting } from '../entities/schedule-setting.entity';
 import { Repository, DeleteResult } from 'typeorm';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { CreateScheduleSettingDto, UpdateScheduleSettingDto } from '../dtos/schedule-setting.dto';
+import {
+  CreateScheduleSettingDto,
+  UpdateScheduleSettingDto,
+} from '../dtos/schedule-setting.dto';
 
 describe('ScheduleSettingService', () => {
   let service: ScheduleSettingService;
@@ -23,12 +26,16 @@ describe('ScheduleSettingService', () => {
   } as ScheduleSetting;
 
   const mockRepository = {
-    create: jest.fn().mockImplementation(dto => dto),
-    save: jest.fn().mockImplementation(setting => Promise.resolve({ id: 1, ...setting })),
+    create: jest.fn().mockImplementation((dto) => dto),
+    save: jest
+      .fn()
+      .mockImplementation((setting) => Promise.resolve({ id: 1, ...setting })),
     find: jest.fn().mockResolvedValue([mockScheduleSetting]),
     findOne: jest.fn().mockResolvedValue(mockScheduleSetting),
     merge: jest.fn().mockImplementation((obj, dto) => ({ ...obj, ...dto })),
-    delete: jest.fn().mockResolvedValue({ affected: 1, raw: {} } as DeleteResult),
+    delete: jest
+      .fn()
+      .mockResolvedValue({ affected: 1, raw: {} } as DeleteResult),
   };
 
   beforeEach(async () => {
@@ -43,7 +50,9 @@ describe('ScheduleSettingService', () => {
     }).compile();
 
     service = module.get<ScheduleSettingService>(ScheduleSettingService);
-    repository = module.get<Repository<ScheduleSetting>>(getRepositoryToken(ScheduleSetting));
+    repository = module.get<Repository<ScheduleSetting>>(
+      getRepositoryToken(ScheduleSetting),
+    );
   });
 
   it('should be defined', () => {
@@ -83,17 +92,19 @@ describe('ScheduleSettingService', () => {
         is_active: true,
       };
 
-      await expect(service.create(createDto)).rejects.toThrow(BadRequestException);
+      await expect(service.create(createDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
   describe('findAll', () => {
     it('should return an array of schedule settings ordered by day_of_week', async () => {
       const result = await service.findAll();
-      
+
       expect(result).toEqual([mockScheduleSetting]);
       expect(repository.find).toHaveBeenCalledWith({
-        order: { day_of_week: 'ASC' }
+        order: { day_of_week: 'ASC' },
       });
     });
   });
@@ -101,7 +112,7 @@ describe('ScheduleSettingService', () => {
   describe('findOne', () => {
     it('should return a single schedule setting', async () => {
       const result = await service.findOne(1);
-      
+
       expect(result).toEqual(mockScheduleSetting);
       expect(repository.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
     });
@@ -115,9 +126,11 @@ describe('ScheduleSettingService', () => {
   describe('findByDay', () => {
     it('should return a schedule setting for a specific day', async () => {
       const result = await service.findByDay(1);
-      
+
       expect(result).toEqual(mockScheduleSetting);
-      expect(repository.findOne).toHaveBeenCalledWith({ where: { day_of_week: 1 } });
+      expect(repository.findOne).toHaveBeenCalledWith({
+        where: { day_of_week: 1 },
+      });
     });
 
     it('should throw NotFoundException when no setting exists for the day', async () => {
@@ -135,12 +148,25 @@ describe('ScheduleSettingService', () => {
         max_concurrent_spiritual: 3,
       } as UpdateScheduleSettingDto;
 
-      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(mockScheduleSetting);
-      
+      const updatedSetting = {
+        ...mockScheduleSetting,
+        ...updateDto,
+      };
+
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockScheduleSetting);
+
+      jest.spyOn(repository, 'save').mockResolvedValueOnce(updatedSetting);
+
       const result = await service.update(1, updateDto);
 
-      expect(repository.merge).toHaveBeenCalledWith(mockScheduleSetting, updateDto);
-      expect(repository.save).toHaveBeenCalled();
+      expect(repository.merge).toHaveBeenCalledWith(
+        mockScheduleSetting,
+        updateDto,
+      );
+      expect(repository.save).toHaveBeenCalledWith(mockScheduleSetting);
+      expect(result).toEqual(updatedSetting);
     });
 
     it('should throw BadRequestException when updating to a day that already has settings', async () => {
@@ -150,23 +176,32 @@ describe('ScheduleSettingService', () => {
         end_time: '17:00',
       } as UpdateScheduleSettingDto;
 
-      jest.spyOn(repository, 'findOne')
+      jest
+        .spyOn(repository, 'findOne')
         .mockResolvedValueOnce(mockScheduleSetting) // First call for findOne(id)
         .mockResolvedValueOnce({ ...mockScheduleSetting, id: 2 }); // Second call for findOne(day_of_week)
 
-      await expect(service.update(1, updateDto)).rejects.toThrow(BadRequestException);
+      await expect(service.update(1, updateDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw NotFoundException when schedule setting not found', async () => {
       jest.spyOn(repository, 'findOne').mockResolvedValueOnce(null);
-      
+
       const updateDto = {
         day_of_week: 1,
         start_time: '10:00',
         end_time: '18:00',
       } as UpdateScheduleSettingDto;
-      
-      await expect(service.update(999, updateDto)).rejects.toThrow(NotFoundException);
+
+      try {
+        await service.update(999, updateDto);
+        fail('Expected NotFoundException to be thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(NotFoundException);
+        expect(error.message).toBe('Schedule setting with ID 999 not found');
+      }
     });
   });
 
@@ -177,7 +212,9 @@ describe('ScheduleSettingService', () => {
     });
 
     it('should throw NotFoundException when schedule setting not found', async () => {
-      jest.spyOn(repository, 'delete').mockResolvedValueOnce({ affected: 0, raw: {} } as DeleteResult);
+      jest
+        .spyOn(repository, 'delete')
+        .mockResolvedValueOnce({ affected: 0, raw: {} } as DeleteResult);
       await expect(service.remove(999)).rejects.toThrow(NotFoundException);
     });
   });

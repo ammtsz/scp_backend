@@ -13,7 +13,7 @@ import {
   DuplicateTreatmentRecordException,
   InvalidAttendanceStatusException,
   InvalidReturnWeeksException,
-} from '../common/exceptions/treatment-record.exceptions';
+} from '../common/exceptions';
 import { AttendanceStatus, AttendanceType } from '../common/enums';
 
 describe('TreatmentRecordService', () => {

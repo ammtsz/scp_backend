@@ -19,11 +19,11 @@ describe('PatientController', () => {
   };
 
   const mockPatientService = {
-    create: jest.fn(dto => Promise.resolve({ id: 1, ...dto })),
+    create: jest.fn((dto) => Promise.resolve({ id: 1, ...dto })),
     findAll: jest.fn(() => Promise.resolve([mockPatient])),
-    findOne: jest.fn(id => Promise.resolve(mockPatient)),
+    findOne: jest.fn(() => Promise.resolve(mockPatient)),
     update: jest.fn((id, dto) => Promise.resolve({ id, ...dto })),
-    remove: jest.fn(id => Promise.resolve({ deleted: true })),
+    remove: jest.fn(() => Promise.resolve({ deleted: true })),
   };
 
   beforeEach(async () => {
@@ -66,7 +66,7 @@ describe('PatientController', () => {
   describe('findAll', () => {
     it('should return an array of patients', async () => {
       const result = await controller.findAll();
-      
+
       expect(result).toEqual([mockPatient]);
       expect(service.findAll).toHaveBeenCalled();
     });
@@ -75,7 +75,7 @@ describe('PatientController', () => {
   describe('findOne', () => {
     it('should return a single patient', async () => {
       const result = await controller.findOne('1');
-      
+
       expect(result).toEqual(mockPatient);
       expect(service.findOne).toHaveBeenCalledWith(1);
     });
@@ -88,9 +88,9 @@ describe('PatientController', () => {
         phone: '(11) 99999-9999',
         priority: PatientPriority.NORMAL,
       };
-      
+
       const result = await controller.update('1', updateDto);
-      
+
       expect(result).toEqual({
         id: 1,
         ...updateDto,
@@ -102,7 +102,7 @@ describe('PatientController', () => {
   describe('remove', () => {
     it('should remove a patient', async () => {
       const result = await controller.remove('1');
-      
+
       expect(result).toEqual(undefined);
       expect(service.remove).toHaveBeenCalledWith(1);
     });

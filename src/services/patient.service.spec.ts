@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PatientService } from './patient.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Patient } from '../entities/patient.entity';
+import { Attendance } from '../entities/attendance.entity';
 import { CreatePatientDto } from '../dtos/patient.dto';
 import { PatientPriority, PatientStatus } from '../common/enums';
 import { Repository, DeleteResult } from 'typeorm';
@@ -22,16 +23,27 @@ describe('PatientService', () => {
   };
 
   const mockRepository = {
-    create: jest.fn().mockImplementation(dto => ({
+    create: jest.fn().mockImplementation((dto) => ({
       ...dto,
       status: dto.status || PatientStatus.NEW,
     })),
-    save: jest.fn().mockImplementation(patient => Promise.resolve({ id: 1, ...patient, status: PatientStatus.NEW })),
+    save: jest
+      .fn()
+      .mockImplementation((patient) =>
+        Promise.resolve({ id: 1, ...patient, status: PatientStatus.NEW }),
+      ),
     merge: jest.fn().mockImplementation((obj, dto) => ({ ...obj, ...dto })),
     find: jest.fn().mockResolvedValue([mockPatient]),
     findOne: jest.fn().mockResolvedValue(mockPatient),
     update: jest.fn().mockResolvedValue(true),
-    delete: jest.fn().mockResolvedValue({ affected: 1, raw: {} } as DeleteResult),
+    delete: jest
+      .fn()
+      .mockResolvedValue({ affected: 1, raw: {} } as DeleteResult),
+  };
+
+  const mockAttendanceRepository = {
+    find: jest.fn().mockResolvedValue([]),
+    count: jest.fn().mockResolvedValue(0),
   };
 
   beforeEach(async () => {
@@ -41,6 +53,10 @@ describe('PatientService', () => {
         {
           provide: getRepositoryToken(Patient),
           useValue: mockRepository,
+        },
+        {
+          provide: getRepositoryToken(Attendance),
+          useValue: mockAttendanceRepository,
         },
       ],
     }).compile();
@@ -58,8 +74,11 @@ describe('PatientService', () => {
       const createDto: CreatePatientDto = {
         name: 'John Doe',
         phone: '(11) 99999-9999',
-        priority: PatientPriority.NORMAL
+        priority: PatientPriority.NORMAL,
       };
+
+      // Mock findOne to return null (no existing patient)
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(null);
 
       const result = await service.create(createDto);
 
@@ -76,7 +95,7 @@ describe('PatientService', () => {
   describe('findAll', () => {
     it('should return an array of patients', async () => {
       const result = await service.findAll();
-      
+
       expect(result).toEqual([mockPatient]);
       expect(repository.find).toHaveBeenCalled();
     });
@@ -85,7 +104,7 @@ describe('PatientService', () => {
   describe('findOne', () => {
     it('should return a single patient', async () => {
       const result = await service.findOne(1);
-      
+
       expect(result).toEqual(mockPatient);
       expect(repository.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
     });
@@ -105,21 +124,23 @@ describe('PatientService', () => {
     });
 
     it('should throw NotFoundException when patient not found during removal', async () => {
-      jest.spyOn(repository, 'delete').mockResolvedValueOnce({ affected: 0, raw: {} } as DeleteResult);
+      jest
+        .spyOn(repository, 'delete')
+        .mockResolvedValueOnce({ affected: 0, raw: {} } as DeleteResult);
       await expect(service.remove(999)).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('update', () => {
     it('should update a patient', async () => {
-      const updateDto = { 
+      const updateDto = {
         name: 'John Doe Updated',
         phone: '(11) 99999-9999',
         priority: PatientPriority.NORMAL,
       };
-      
+
       await service.update(1, updateDto);
-      
+
       expect(repository.merge).toHaveBeenCalledWith(mockPatient, updateDto);
       expect(repository.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
     });
@@ -128,7 +149,7 @@ describe('PatientService', () => {
   describe('remove', () => {
     it('should remove a patient', async () => {
       await service.remove(1);
-      
+
       expect(repository.delete).toHaveBeenCalledWith(1);
     });
   });

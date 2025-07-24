@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, HttpException } from '@nestjs/common';
+import {
+  Injectable,
+  HttpException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TreatmentRecord } from '../entities/treatment-record.entity';
@@ -9,9 +14,9 @@ import {
 } from '../dtos/treatment-record.dto';
 import {
   DuplicateTreatmentRecordException,
-  InvalidAttendanceStatusException,
   InvalidReturnWeeksException,
-} from '../common/exceptions/treatment-record.exceptions';
+  InvalidAttendanceStatusException,
+} from '../common/exceptions';
 
 @Injectable()
 export class TreatmentRecordService {
@@ -60,9 +65,9 @@ export class TreatmentRecordService {
         );
       }
 
-      if (attendance.status === 'cancelled') {
+      if (attendance.status !== 'completed') {
         throw new InvalidAttendanceStatusException(
-          createTreatmentRecordDto.attendance_id,
+          attendance.id,
           attendance.status,
         );
       }
@@ -110,7 +115,7 @@ export class TreatmentRecordService {
     });
     if (!record) {
       throw new NotFoundException(
-        `Treatment record for attendance ${attendanceId} not found`,
+        `Treatment record not found for attendance ${attendanceId}`,
       );
     }
     return record;
@@ -121,6 +126,23 @@ export class TreatmentRecordService {
     updateTreatmentRecordDto: UpdateTreatmentRecordDto,
   ): Promise<TreatmentRecord> {
     const record = await this.findOne(id);
+
+    if (Object.keys(updateTreatmentRecordDto).length === 0) {
+      throw new BadRequestException(
+        'At least one field must be provided for update',
+      );
+    }
+
+    if (
+      updateTreatmentRecordDto.return_in_weeks &&
+      (updateTreatmentRecordDto.return_in_weeks <= 0 ||
+        updateTreatmentRecordDto.return_in_weeks > 52)
+    ) {
+      throw new BadRequestException(
+        `Invalid return weeks value: ${updateTreatmentRecordDto.return_in_weeks}. Must be between 1 and 52 weeks`,
+      );
+    }
+
     this.treatmentRecordRepository.merge(record, updateTreatmentRecordDto);
     return await this.treatmentRecordRepository.save(record);
   }

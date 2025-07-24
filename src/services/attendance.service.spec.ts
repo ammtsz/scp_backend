@@ -6,7 +6,11 @@ import { CreateAttendanceDto } from '../dtos/attendance.dto';
 import { AttendanceType, AttendanceStatus } from '../common/enums';
 import { ScheduleSetting } from '../entities/schedule-setting.entity';
 import { Repository, DeleteResult } from 'typeorm';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  ResourceNotFoundException,
+  InvalidAttendanceStatusTransitionException,
+  AttendanceTimeSlotUnavailableException,
+} from '../common/exceptions';
 
 describe('AttendanceService', () => {
   let service: AttendanceService;
@@ -27,18 +31,26 @@ describe('AttendanceService', () => {
     checked_in_at: null,
     started_at: null,
     completed_at: null,
-    cancelled_at: null
+    cancelled_at: null,
   } as Attendance;
 
   const mockRepository = {
-    create: jest.fn().mockImplementation(dto => ({ ...dto, status: AttendanceStatus.SCHEDULED })),
-    save: jest.fn().mockImplementation(attendance => Promise.resolve({ id: 1, ...attendance })),
+    create: jest.fn().mockImplementation((dto) => ({
+      ...dto,
+      status: AttendanceStatus.SCHEDULED,
+    })),
+    save: jest
+      .fn()
+      .mockImplementation((attendance) =>
+        Promise.resolve({ id: 1, ...attendance }),
+      ),
     find: jest.fn().mockResolvedValue([mockAttendance]),
     findOne: jest.fn().mockResolvedValue(mockAttendance),
     update: jest.fn().mockResolvedValue(true),
     delete: jest.fn().mockResolvedValue({ affected: 1 }),
     count: jest.fn().mockResolvedValue(0),
     merge: jest.fn().mockImplementation((obj, dto) => ({ ...obj, ...dto })),
+    remove: jest.fn().mockResolvedValue(true),
   };
 
   beforeEach(async () => {
@@ -59,7 +71,9 @@ describe('AttendanceService', () => {
     }).compile();
 
     service = module.get<AttendanceService>(AttendanceService);
-    repository = module.get<Repository<Attendance>>(getRepositoryToken(Attendance));
+    repository = module.get<Repository<Attendance>>(
+      getRepositoryToken(Attendance),
+    );
   });
 
   it('should be defined', () => {
@@ -90,7 +104,7 @@ describe('AttendanceService', () => {
   describe('findAll', () => {
     it('should return an array of attendances', async () => {
       const result = await service.findAll();
-      
+
       expect(result).toEqual([mockAttendance]);
       expect(repository.find).toHaveBeenCalled();
     });
@@ -99,20 +113,26 @@ describe('AttendanceService', () => {
   describe('findOne', () => {
     it('should return a single attendance', async () => {
       const result = await service.findOne(1);
-      
+
       expect(result).toEqual(mockAttendance);
-      expect(repository.findOne).toHaveBeenCalledWith({ where: { id: 1 }, relations: ['patient'] });
+      expect(repository.findOne).toHaveBeenCalledWith({
+        where: { id: 1 },
+        relations: ['patient'],
+      });
     });
   });
 
   describe('update', () => {
     it('should update an attendance', async () => {
       const updateDto = { notes: 'Updated notes' };
-      
+
       await service.update(1, updateDto);
-      
+
       expect(repository.merge).toHaveBeenCalledWith(mockAttendance, updateDto);
-      expect(repository.findOne).toHaveBeenCalledWith({ where: { id: 1 }, relations: ['patient'] });
+      expect(repository.findOne).toHaveBeenCalledWith({
+        where: { id: 1 },
+        relations: ['patient'],
+      });
     });
   });
 
@@ -122,9 +142,13 @@ describe('AttendanceService', () => {
       expect(repository.delete).toHaveBeenCalledWith(1);
     });
 
-    it('should throw NotFoundException when attendance not found', async () => {
-      jest.spyOn(repository, 'delete').mockResolvedValueOnce({ affected: 0, raw: {} } as DeleteResult);
-      await expect(service.remove(999)).rejects.toThrow(NotFoundException);
+    it('should throw ResourceNotFoundException when attendance not found', async () => {
+      jest
+        .spyOn(repository, 'delete')
+        .mockResolvedValueOnce({ affected: 0, raw: {} } as DeleteResult);
+      await expect(service.remove(999)).rejects.toThrow(
+        ResourceNotFoundException,
+      );
     });
   });
 
@@ -132,11 +156,15 @@ describe('AttendanceService', () => {
     let scheduleSettingRepository: Repository<ScheduleSetting>;
 
     beforeEach(() => {
-      scheduleSettingRepository = module.get<Repository<ScheduleSetting>>(getRepositoryToken(ScheduleSetting));
+      scheduleSettingRepository = module.get<Repository<ScheduleSetting>>(
+        getRepositoryToken(ScheduleSetting),
+      );
     });
 
-    it('should throw BadRequestException when no scheduling settings available', async () => {
-      jest.spyOn(scheduleSettingRepository, 'findOne').mockResolvedValueOnce(null);
+    it('should throw ResourceNotFoundException when no scheduling settings available', async () => {
+      jest
+        .spyOn(scheduleSettingRepository, 'findOne')
+        .mockResolvedValueOnce(null);
 
       const dto: CreateAttendanceDto = {
         patient_id: 1,
@@ -146,10 +174,12 @@ describe('AttendanceService', () => {
         notes: 'Test notes',
       };
 
-      await expect(service.create(dto)).rejects.toThrow(BadRequestException);
+      await expect(service.create(dto)).rejects.toThrow(
+        ResourceNotFoundException,
+      );
     });
 
-    it('should throw BadRequestException when time is outside operational hours', async () => {
+    it('should throw AttendanceTimeSlotUnavailableException when time is outside operational hours', async () => {
       jest.spyOn(scheduleSettingRepository, 'findOne').mockResolvedValueOnce({
         id: 1,
         day_of_week: 2,
@@ -159,7 +189,7 @@ describe('AttendanceService', () => {
         max_concurrent_light_bath: 2,
         is_active: true,
         created_at: new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
       } as ScheduleSetting);
 
       const dto: CreateAttendanceDto = {
@@ -170,10 +200,12 @@ describe('AttendanceService', () => {
         notes: 'Test notes',
       };
 
-      await expect(service.create(dto)).rejects.toThrow(BadRequestException);
+      await expect(service.create(dto)).rejects.toThrow(
+        AttendanceTimeSlotUnavailableException,
+      );
     });
 
-    it('should throw BadRequestException when maximum concurrent appointments reached', async () => {
+    it('should throw AttendanceTimeSlotUnavailableException when maximum concurrent appointments reached', async () => {
       jest.spyOn(scheduleSettingRepository, 'findOne').mockResolvedValueOnce({
         id: 1,
         day_of_week: 2,
@@ -183,9 +215,9 @@ describe('AttendanceService', () => {
         max_concurrent_light_bath: 2,
         is_active: true,
         created_at: new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
       } as ScheduleSetting);
-      
+
       jest.spyOn(repository, 'count').mockResolvedValueOnce(2);
 
       const dto: CreateAttendanceDto = {
@@ -196,39 +228,47 @@ describe('AttendanceService', () => {
         notes: 'Test notes',
       };
 
-      await expect(service.create(dto)).rejects.toThrow(BadRequestException);
+      await expect(service.create(dto)).rejects.toThrow(
+        AttendanceTimeSlotUnavailableException,
+      );
     });
   });
 
   describe('validateStatusTransition', () => {
-    it('should throw BadRequestException for invalid status transition', async () => {
-      const updateDto = { 
+    it('should throw InvalidAttendanceStatusTransitionException for invalid status transition', async () => {
+      const updateDto = {
         status: AttendanceStatus.COMPLETED,
-        notes: 'Updated notes' 
+        notes: 'Updated notes',
       };
-      
+
       const mockScheduledAttendance = {
         ...mockAttendance,
-        status: AttendanceStatus.SCHEDULED
+        status: AttendanceStatus.SCHEDULED,
       } as Attendance;
 
-      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(mockScheduledAttendance);
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockScheduledAttendance);
 
-      await expect(service.update(1, updateDto)).rejects.toThrow(BadRequestException);
+      await expect(service.update(1, updateDto)).rejects.toThrow(
+        InvalidAttendanceStatusTransitionException,
+      );
     });
 
     it('should allow valid status transition', async () => {
-      const updateDto = { 
+      const updateDto = {
         status: AttendanceStatus.CHECKED_IN,
-        notes: 'Updated notes' 
+        notes: 'Updated notes',
       };
-      
+
       const mockScheduledAttendance = {
         ...mockAttendance,
-        status: AttendanceStatus.SCHEDULED
+        status: AttendanceStatus.SCHEDULED,
       } as Attendance;
 
-      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(mockScheduledAttendance);
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockScheduledAttendance);
 
       await service.update(1, updateDto);
       expect(repository.save).toHaveBeenCalled();
@@ -236,9 +276,11 @@ describe('AttendanceService', () => {
   });
 
   describe('findOne error cases', () => {
-    it('should throw NotFoundException when attendance not found', async () => {
+    it('should throw ResourceNotFoundException when attendance not found', async () => {
       jest.spyOn(repository, 'findOne').mockResolvedValueOnce(null);
-      await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
+      await expect(service.findOne(999)).rejects.toThrow(
+        ResourceNotFoundException,
+      );
     });
   });
 });

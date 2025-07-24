@@ -1,81 +1,121 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
+import { ApiTags, ApiBody, ApiParam } from '@nestjs/swagger';
 import { AttendanceService } from '../services/attendance.service';
-import { CreateAttendanceDto, UpdateAttendanceDto, AttendanceResponseDto } from '../dtos/attendance.dto';
+import {
+  CreateAttendanceDto,
+  UpdateAttendanceDto,
+  AttendanceResponseDto,
+} from '../dtos/attendance.dto';
 import { AttendanceTransformer } from '../transformers/attendance.transformer';
+import {
+  ApiAttendanceOperation,
+  ApiCreateAttendanceOperation,
+  ApiUpdateAttendanceOperation,
+} from '../decorators/api-attendance.decorator';
+import { ResourceNotFoundException } from '../common/exceptions/base.exception';
 
 @ApiTags('Attendances')
 @Controller('attendances')
 export class AttendanceController {
-    constructor(private readonly attendanceService: AttendanceService) {}
+  private readonly logger = new Logger(AttendanceController.name);
 
-    @Post()
-    @HttpCode(HttpStatus.CREATED)
-    @ApiOperation({ summary: 'Create new attendance' })
-    @ApiBody({ type: CreateAttendanceDto })
-    @ApiResponse({ 
-        status: 201, 
-        description: 'The attendance has been successfully created.',
-        type: AttendanceResponseDto 
-    })
-    @ApiResponse({ status: 400, description: 'Invalid input data.' })
-    async create(@Body() createAttendanceDto: CreateAttendanceDto): Promise<AttendanceResponseDto> {
-        const attendance = await this.attendanceService.create(createAttendanceDto);
-        return AttendanceTransformer.toResponseDto(attendance);
-    }
+  constructor(private readonly attendanceService: AttendanceService) {}
 
-    @Get()
-    @ApiOperation({ summary: 'Get all attendances' })
-    @ApiResponse({ 
-        status: 200, 
-        description: 'List of all attendances',
-        type: [AttendanceResponseDto]
-    })
-    async findAll(): Promise<AttendanceResponseDto[]> {
-        const attendances = await this.attendanceService.findAll();
-        return AttendanceTransformer.toResponseDtoList(attendances);
-    }
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiCreateAttendanceOperation()
+  @ApiBody({ type: CreateAttendanceDto })
+  async create(
+    @Body() createAttendanceDto: CreateAttendanceDto,
+  ): Promise<AttendanceResponseDto> {
+    this.logger.log(
+      `Creating new attendance for patient ${createAttendanceDto.patient_id}`,
+    );
+    const attendance = await this.attendanceService.create(createAttendanceDto);
+    this.logger.log(
+      `Created attendance ${attendance.id} for patient ${attendance.patient_id}`,
+    );
+    return AttendanceTransformer.toResponseDto(attendance);
+  }
 
-    @Get(':id')
-    @ApiOperation({ summary: 'Get attendance by ID' })
-    @ApiParam({ name: 'id', description: 'Attendance ID' })
-    @ApiResponse({ 
-        status: 200, 
-        description: 'The attendance record',
-        type: AttendanceResponseDto
-    })
-    @ApiResponse({ status: 404, description: 'Attendance not found.' })
-    async findOne(@Param('id') id: string): Promise<AttendanceResponseDto> {
-        const attendance = await this.attendanceService.findOne(+id);
-        return AttendanceTransformer.toResponseDto(attendance);
-    }
+  @Get()
+  @ApiAttendanceOperation('Retrieve all attendance records')
+  async findAll(): Promise<AttendanceResponseDto[]> {
+    this.logger.log('Retrieving all attendances');
+    const attendances = await this.attendanceService.findAll();
+    this.logger.log(`Found ${attendances.length} attendances`);
+    return AttendanceTransformer.toResponseDtoList(attendances);
+  }
 
-    @Patch(':id')
-    @ApiOperation({ summary: 'Update attendance' })
-    @ApiParam({ name: 'id', description: 'Attendance ID' })
-    @ApiBody({ type: UpdateAttendanceDto })
-    @ApiResponse({ 
-        status: 200, 
-        description: 'The attendance has been successfully updated.',
-        type: AttendanceResponseDto
-    })
-    @ApiResponse({ status: 404, description: 'Attendance not found.' })
-    @ApiResponse({ status: 400, description: 'Invalid input data.' })
-    async update(
-        @Param('id') id: string,
-        @Body() updateAttendanceDto: UpdateAttendanceDto
-    ): Promise<AttendanceResponseDto> {
-        const attendance = await this.attendanceService.update(+id, updateAttendanceDto);
-        return AttendanceTransformer.toResponseDto(attendance);
+  @Get(':id')
+  @ApiAttendanceOperation('Retrieve a specific attendance record')
+  @ApiParam({
+    name: 'id',
+    description: 'ID of the attendance record to retrieve',
+    type: 'number',
+  })
+  async findOne(@Param('id') id: string): Promise<AttendanceResponseDto> {
+    this.logger.log(`Retrieving attendance with ID ${id}`);
+    const attendance = await this.attendanceService.findOne(+id);
+    if (!attendance) {
+      this.logger.warn(`Attendance with ID ${id} not found`);
+      throw new ResourceNotFoundException('Attendance', id);
     }
+    return AttendanceTransformer.toResponseDto(attendance);
+  }
 
-    @Delete(':id')
-    @HttpCode(HttpStatus.NO_CONTENT)
-    @ApiOperation({ summary: 'Delete attendance' })
-    @ApiParam({ name: 'id', description: 'Attendance ID' })
-    @ApiResponse({ status: 204, description: 'The attendance has been successfully deleted.' })
-    @ApiResponse({ status: 404, description: 'Attendance not found.' })
-    async remove(@Param('id') id: string): Promise<void> {
-        await this.attendanceService.remove(+id);
+  @Patch(':id')
+  @ApiUpdateAttendanceOperation()
+  @ApiParam({
+    name: 'id',
+    description: 'ID of the attendance record to update',
+    type: 'number',
+  })
+  @ApiBody({ type: UpdateAttendanceDto })
+  async update(
+    @Param('id') id: string,
+    @Body() updateAttendanceDto: UpdateAttendanceDto,
+  ): Promise<AttendanceResponseDto> {
+    this.logger.log(`Updating attendance with ID ${id}`);
+    const attendance = await this.attendanceService.update(
+      +id,
+      updateAttendanceDto,
+    );
+    if (!attendance) {
+      this.logger.warn(`Attendance with ID ${id} not found`);
+      throw new ResourceNotFoundException('Attendance', id);
     }
+    this.logger.log(`Successfully updated attendance ${id}`);
+    return AttendanceTransformer.toResponseDto(attendance);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiAttendanceOperation('Delete an attendance record')
+  @ApiParam({
+    name: 'id',
+    description: 'ID of the attendance record to delete',
+    type: 'number',
+  })
+  async remove(@Param('id') id: string): Promise<void> {
+    this.logger.log(`Deleting attendance with ID ${id}`);
+    const attendance = await this.attendanceService.findOne(+id);
+    if (!attendance) {
+      this.logger.warn(`Attendance with ID ${id} not found`);
+      throw new ResourceNotFoundException('Attendance', id);
+    }
+    await this.attendanceService.remove(+id);
+    this.logger.log(`Successfully deleted attendance ${id}`);
+  }
 }

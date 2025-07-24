@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AttendanceController } from './attendance.controller';
 import { AttendanceService } from '../services/attendance.service';
-import { CreateAttendanceDto, UpdateAttendanceDto } from '../dtos/attendance.dto';
+import {
+  CreateAttendanceDto,
+  UpdateAttendanceDto,
+} from '../dtos/attendance.dto';
 import { AttendanceType, AttendanceStatus } from '../common/enums';
 
 describe('AttendanceController', () => {
@@ -25,25 +28,37 @@ describe('AttendanceController', () => {
   };
 
   const mockAttendanceService = {
-    create: jest.fn(dto => Promise.resolve({ 
-      ...mockAttendance, 
-      ...dto,
-      scheduled_date: new Date(dto.scheduled_date),
-    })),
-    findAll: jest.fn(() => Promise.resolve([{
-      ...mockAttendance,
-      scheduled_date: new Date(mockAttendance.scheduled_date),
-    }])),
-    findOne: jest.fn(id => Promise.resolve({
-      ...mockAttendance,
-      scheduled_date: new Date(mockAttendance.scheduled_date),
-    })),
-    update: jest.fn((id, dto) => Promise.resolve({ 
-      ...mockAttendance, 
-      ...dto,
-      scheduled_date: dto.scheduled_date ? new Date(dto.scheduled_date) : new Date(mockAttendance.scheduled_date),
-    })),
-    remove: jest.fn(id => Promise.resolve(undefined)),
+    create: jest.fn((dto) =>
+      Promise.resolve({
+        ...mockAttendance,
+        ...dto,
+        scheduled_date: new Date(dto.scheduled_date),
+      }),
+    ),
+    findAll: jest.fn(() =>
+      Promise.resolve([
+        {
+          ...mockAttendance,
+          scheduled_date: new Date(mockAttendance.scheduled_date),
+        },
+      ]),
+    ),
+    findOne: jest.fn((id) =>
+      Promise.resolve({
+        ...mockAttendance,
+        scheduled_date: new Date(mockAttendance.scheduled_date),
+      }),
+    ),
+    update: jest.fn((id, dto) =>
+      Promise.resolve({
+        ...mockAttendance,
+        ...dto,
+        scheduled_date: dto.scheduled_date
+          ? new Date(dto.scheduled_date)
+          : new Date(mockAttendance.scheduled_date),
+      }),
+    ),
+    remove: jest.fn((id) => Promise.resolve(undefined)),
   };
 
   beforeEach(async () => {
@@ -88,7 +103,7 @@ describe('AttendanceController', () => {
   describe('findAll', () => {
     it('should return an array of attendances', async () => {
       const result = await controller.findAll();
-      
+
       expect(result).toEqual([mockAttendance]);
       expect(service.findAll).toHaveBeenCalled();
     });
@@ -97,7 +112,7 @@ describe('AttendanceController', () => {
   describe('findOne', () => {
     it('should return a single attendance', async () => {
       const result = await controller.findOne('1');
-      
+
       expect(result).toEqual(mockAttendance);
       expect(service.findOne).toHaveBeenCalledWith(1);
     });
@@ -108,9 +123,9 @@ describe('AttendanceController', () => {
       const updateDto: UpdateAttendanceDto = {
         notes: 'Updated notes',
       };
-      
+
       const result = await controller.update('1', updateDto);
-      
+
       expect(result).toMatchObject({
         id: 1,
         ...updateDto,
@@ -122,7 +137,7 @@ describe('AttendanceController', () => {
   describe('remove', () => {
     it('should remove an attendance', async () => {
       const result = await controller.remove('1');
-      
+
       expect(result).toEqual(undefined);
       expect(service.remove).toHaveBeenCalledWith(1);
     });

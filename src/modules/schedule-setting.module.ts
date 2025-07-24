@@ -5,9 +5,9 @@ import { ScheduleSettingController } from '../controllers/schedule-setting.contr
 import { ScheduleSettingService } from '../services/schedule-setting.service';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([ScheduleSetting])],
-    controllers: [ScheduleSettingController],
-    providers: [ScheduleSettingService],
-    exports: [ScheduleSettingService]
+  imports: [TypeOrmModule.forFeature([ScheduleSetting])],
+  controllers: [ScheduleSettingController],
+  providers: [ScheduleSettingService],
+  exports: [ScheduleSettingService],
 })
 export class ScheduleSettingModule {}

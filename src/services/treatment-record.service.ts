@@ -127,21 +127,21 @@ export class TreatmentRecordService {
   ): Promise<TreatmentRecord> {
     const record = await this.findOne(id);
 
-    if (Object.keys(updateTreatmentRecordDto).length === 0) {
-      throw new BadRequestException(
-        'At least one field must be provided for update',
-      );
-    }
+      if (Object.keys(updateTreatmentRecordDto).length === 0) {
+        throw new BadRequestException(
+          'At least one field must be provided for update',
+        );
+      }
 
-    if (
-      updateTreatmentRecordDto.return_in_weeks &&
-      (updateTreatmentRecordDto.return_in_weeks <= 0 ||
-        updateTreatmentRecordDto.return_in_weeks > 52)
-    ) {
-      throw new BadRequestException(
-        `Invalid return weeks value: ${updateTreatmentRecordDto.return_in_weeks}. Must be between 1 and 52 weeks`,
-      );
-    }
+      if (
+        updateTreatmentRecordDto.return_in_weeks &&
+        (updateTreatmentRecordDto.return_in_weeks <= 0 ||
+          updateTreatmentRecordDto.return_in_weeks > 52)
+      ) {
+        throw new BadRequestException(
+          `Invalid return weeks value: ${updateTreatmentRecordDto.return_in_weeks}. Must be between 1 and 52 weeks`,
+        );
+      }
 
     this.treatmentRecordRepository.merge(record, updateTreatmentRecordDto);
     return await this.treatmentRecordRepository.save(record);

@@ -1,7 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ScheduleSettingController } from './schedule-setting.controller';
 import { ScheduleSettingService } from '../services/schedule-setting.service';
-import { CreateScheduleSettingDto, UpdateScheduleSettingDto, ScheduleSettingResponseDto } from '../dtos/schedule-setting.dto';
+import {
+  CreateScheduleSettingDto,
+  UpdateScheduleSettingDto,
+  ScheduleSettingResponseDto,
+} from '../dtos/schedule-setting.dto';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 describe('ScheduleSettingController', () => {
@@ -40,7 +44,9 @@ describe('ScheduleSettingController', () => {
       ],
     }).compile();
 
-    controller = module.get<ScheduleSettingController>(ScheduleSettingController);
+    controller = module.get<ScheduleSettingController>(
+      ScheduleSettingController,
+    );
     service = module.get<ScheduleSettingService>(ScheduleSettingService);
   });
 
@@ -75,9 +81,13 @@ describe('ScheduleSettingController', () => {
         is_active: true,
       };
 
-      jest.spyOn(service, 'create').mockRejectedValue(new BadRequestException());
+      jest
+        .spyOn(service, 'create')
+        .mockRejectedValue(new BadRequestException());
 
-      await expect(controller.create(createDto)).rejects.toThrow(BadRequestException);
+      await expect(controller.create(createDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -101,7 +111,9 @@ describe('ScheduleSettingController', () => {
     it('should handle NotFoundException', async () => {
       jest.spyOn(service, 'findOne').mockRejectedValue(new NotFoundException());
 
-      await expect(controller.findOne('999')).rejects.toThrow(NotFoundException);
+      await expect(controller.findOne('999')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -114,9 +126,13 @@ describe('ScheduleSettingController', () => {
     });
 
     it('should handle NotFoundException', async () => {
-      jest.spyOn(service, 'findByDay').mockRejectedValue(new NotFoundException());
+      jest
+        .spyOn(service, 'findByDay')
+        .mockRejectedValue(new NotFoundException());
 
-      await expect(controller.findByDay('7')).rejects.toThrow(NotFoundException);
+      await expect(controller.findByDay('7')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -149,7 +165,9 @@ describe('ScheduleSettingController', () => {
 
       jest.spyOn(service, 'update').mockRejectedValue(new NotFoundException());
 
-      await expect(controller.update('999', updateDto)).rejects.toThrow(NotFoundException);
+      await expect(controller.update('999', updateDto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should handle BadRequestException', async () => {
@@ -162,9 +180,13 @@ describe('ScheduleSettingController', () => {
         is_active: true,
       };
 
-      jest.spyOn(service, 'update').mockRejectedValue(new BadRequestException());
+      jest
+        .spyOn(service, 'update')
+        .mockRejectedValue(new BadRequestException());
 
-      await expect(controller.update('1', updateDto)).rejects.toThrow(BadRequestException);
+      await expect(controller.update('1', updateDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 

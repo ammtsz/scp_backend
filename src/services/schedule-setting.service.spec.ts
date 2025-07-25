@@ -203,6 +203,74 @@ describe('ScheduleSettingService', () => {
         expect(error.message).toBe('Schedule setting with ID 999 not found');
       }
     });
+
+    it('should throw BadRequestException when no fields provided for update', async () => {
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockScheduleSetting);
+
+      const emptyUpdateDto = {} as UpdateScheduleSettingDto;
+
+      await expect(service.update(1, emptyUpdateDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should update setting without changing day of week', async () => {
+      const updateDto = {
+        start_time: '08:00',
+        end_time: '16:00',
+      } as UpdateScheduleSettingDto;
+
+      const updatedSetting = {
+        ...mockScheduleSetting,
+        ...updateDto,
+      };
+
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockScheduleSetting);
+
+      jest.spyOn(repository, 'save').mockResolvedValueOnce(updatedSetting);
+
+      const result = await service.update(1, updateDto);
+
+      expect(repository.merge).toHaveBeenCalledWith(
+        mockScheduleSetting,
+        updateDto,
+      );
+      expect(repository.save).toHaveBeenCalledWith(mockScheduleSetting);
+      expect(result).toEqual(updatedSetting);
+    });
+
+    it('should update setting when changing to non-existing day', async () => {
+      const updateDto = {
+        day_of_week: 3,
+        start_time: '09:00',
+        end_time: '17:00',
+      } as UpdateScheduleSettingDto;
+
+      const updatedSetting = {
+        ...mockScheduleSetting,
+        ...updateDto,
+      };
+
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockScheduleSetting) // First call for findOne(id)
+        .mockResolvedValueOnce(null); // Second call for findOne(day_of_week) - no existing setting
+
+      jest.spyOn(repository, 'save').mockResolvedValueOnce(updatedSetting);
+
+      const result = await service.update(1, updateDto);
+
+      expect(repository.merge).toHaveBeenCalledWith(
+        mockScheduleSetting,
+        updateDto,
+      );
+      expect(repository.save).toHaveBeenCalledWith(mockScheduleSetting);
+      expect(result).toEqual(updatedSetting);
+    });
   });
 
   describe('remove', () => {

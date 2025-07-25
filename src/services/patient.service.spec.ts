@@ -3,10 +3,21 @@ import { PatientService } from './patient.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Patient } from '../entities/patient.entity';
 import { Attendance } from '../entities/attendance.entity';
-import { CreatePatientDto } from '../dtos/patient.dto';
-import { PatientPriority, TreatmentStatus } from '../common/enums';
+import { CreatePatientDto, UpdatePatientDto } from '../dtos/patient.dto';
+import {
+  PatientPriority,
+  TreatmentStatus,
+  AttendanceStatus,
+} from '../common/enums';
 import { Repository, DeleteResult } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
+import {
+  ValidationException,
+  DuplicatePatientException,
+  InvalidPatientPriorityException,
+  TreatmentStatusUpdateException,
+  PatientHasActiveAttendancesException,
+} from '../common/exceptions';
 
 describe('PatientService', () => {
   let service: PatientService;
@@ -18,6 +29,10 @@ describe('PatientService', () => {
     phone: '(11) 99999-9999',
     priority: PatientPriority.NORMAL,
     treatment_status: TreatmentStatus.IN_TREATMENT,
+    birth_date: new Date('1990-01-01'),
+    main_complaint: 'Test complaint',
+    start_date: new Date(),
+    discharge_date: null,
     created_at: new Date(),
     updated_at: new Date(),
   };
@@ -92,6 +107,36 @@ describe('PatientService', () => {
       expect(repository.create).toHaveBeenCalledWith(createDto);
       expect(repository.save).toHaveBeenCalled();
     });
+
+    it('should throw DuplicatePatientException when patient already exists', async () => {
+      const createDto: CreatePatientDto = {
+        name: 'John Doe',
+        phone: '(11) 99999-9999',
+        priority: PatientPriority.NORMAL,
+      };
+
+      // Mock findOne to return existing patient
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(mockPatient);
+
+      await expect(service.create(createDto)).rejects.toThrow(
+        DuplicatePatientException,
+      );
+    });
+
+    it('should throw InvalidPatientPriorityException for invalid priority', async () => {
+      const createDto: CreatePatientDto = {
+        name: 'John Doe',
+        phone: '(11) 99999-9999',
+        priority: 'INVALID_PRIORITY' as any, // Force invalid priority
+      };
+
+      // Mock findOne to return null (no existing patient)
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(null);
+
+      await expect(service.create(createDto)).rejects.toThrow(
+        InvalidPatientPriorityException,
+      );
+    });
   });
 
   describe('findAll', () => {
@@ -135,24 +180,107 @@ describe('PatientService', () => {
 
   describe('update', () => {
     it('should update a patient', async () => {
-      const updateDto = {
+      const updateDto: Partial<UpdatePatientDto> = {
         name: 'John Doe Updated',
         phone: '(11) 99999-9999',
         priority: PatientPriority.NORMAL,
       };
 
-      await service.update(1, updateDto);
+      await service.update(1, updateDto as UpdatePatientDto);
 
       expect(repository.merge).toHaveBeenCalledWith(mockPatient, updateDto);
       expect(repository.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
+      expect(repository.save).toHaveBeenCalled();
+    });
+
+    it('should throw ValidationException when no fields provided', async () => {
+      const updateDto: Partial<UpdatePatientDto> = {};
+
+      await expect(
+        service.update(1, updateDto as UpdatePatientDto),
+      ).rejects.toThrow(ValidationException);
+    });
+
+    it('should update treatment status with valid transition', async () => {
+      const updateDto: Partial<UpdatePatientDto> = {
+        treatment_status: TreatmentStatus.DISCHARGED,
+      };
+
+      await service.update(1, updateDto as UpdatePatientDto);
+
+      expect(repository.merge).toHaveBeenCalledWith(mockPatient, updateDto);
+      expect(repository.save).toHaveBeenCalled();
+    });
+
+    it('should throw TreatmentStatusUpdateException for invalid transition', async () => {
+      const updateDto: Partial<UpdatePatientDto> = {
+        treatment_status: TreatmentStatus.DISCHARGED,
+      };
+
+      // Mock to simulate invalid transition
+      const originalPatient = {
+        ...mockPatient,
+        treatment_status: 'INVALID' as TreatmentStatus,
+      };
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(originalPatient);
+
+      await expect(
+        service.update(1, updateDto as UpdatePatientDto),
+      ).rejects.toThrow(TreatmentStatusUpdateException);
+    });
+
+    it('should throw InvalidPatientPriorityException for invalid priority', async () => {
+      const updateDto: Partial<UpdatePatientDto> = {
+        priority: '4' as PatientPriority, // Invalid priority
+      };
+
+      await expect(
+        service.update(1, updateDto as UpdatePatientDto),
+      ).rejects.toThrow(InvalidPatientPriorityException);
+    });
+
+    it('should update priority with valid value', async () => {
+      const updateDto: Partial<UpdatePatientDto> = {
+        priority: PatientPriority.EMERGENCY,
+      };
+
+      await service.update(1, updateDto as UpdatePatientDto);
+
+      expect(repository.merge).toHaveBeenCalledWith(mockPatient, updateDto);
+      expect(repository.save).toHaveBeenCalled();
     });
   });
 
   describe('remove', () => {
-    it('should remove a patient', async () => {
+    it('should remove a patient when no active attendances', async () => {
+      jest.spyOn(mockAttendanceRepository, 'count').mockResolvedValueOnce(0);
+
       await service.remove(1);
 
+      expect(mockAttendanceRepository.count).toHaveBeenCalledWith({
+        where: {
+          patient_id: 1,
+          status: AttendanceStatus.SCHEDULED,
+        },
+      });
       expect(repository.delete).toHaveBeenCalledWith(1);
+    });
+
+    it('should throw PatientHasActiveAttendancesException when patient has active attendances', async () => {
+      jest.spyOn(mockAttendanceRepository, 'count').mockResolvedValueOnce(2);
+
+      await expect(service.remove(1)).rejects.toThrow(
+        PatientHasActiveAttendancesException,
+      );
+    });
+
+    it('should throw NotFoundException when patient not found during removal', async () => {
+      jest.spyOn(mockAttendanceRepository, 'count').mockResolvedValueOnce(0);
+      jest
+        .spyOn(repository, 'delete')
+        .mockResolvedValueOnce({ affected: 0, raw: {} } as DeleteResult);
+
+      await expect(service.remove(999)).rejects.toThrow(NotFoundException);
     });
   });
 });

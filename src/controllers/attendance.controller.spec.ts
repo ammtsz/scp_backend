@@ -6,6 +6,7 @@ import {
   UpdateAttendanceDto,
 } from '../dtos/attendance.dto';
 import { AttendanceType, AttendanceStatus } from '../common/enums';
+import { ResourceNotFoundException } from '../common/exceptions';
 
 describe('AttendanceController', () => {
   let controller: AttendanceController;
@@ -30,35 +31,35 @@ describe('AttendanceController', () => {
   const mockAttendanceService = {
     create: jest.fn((dto) =>
       Promise.resolve({
-        ...mockAttendance,
+        id: 1,
         ...dto,
-        scheduled_date: new Date(dto.scheduled_date),
+        type: AttendanceType.SPIRITUAL,
+        status: AttendanceStatus.SCHEDULED,
+        created_at: new Date(),
+        updated_at: new Date(),
       }),
     ),
-    findAll: jest.fn(() =>
-      Promise.resolve([
-        {
-          ...mockAttendance,
-          scheduled_date: new Date(mockAttendance.scheduled_date),
-        },
-      ]),
-    ),
-    findOne: jest.fn((id) =>
+    findAll: jest.fn(() => Promise.resolve([mockAttendance])),
+    findOne: jest.fn(() =>
       Promise.resolve({
-        ...mockAttendance,
-        scheduled_date: new Date(mockAttendance.scheduled_date),
+        id: 1,
+        patient_id: 1,
+        patient: null,
+        type: AttendanceType.SPIRITUAL,
+        status: AttendanceStatus.SCHEDULED,
+        scheduled_date: new Date('2025-07-22'),
+        scheduled_time: '14:30',
+        notes: 'Test notes',
+        created_at: new Date(),
+        updated_at: new Date(),
+        checked_in_at: null,
+        started_at: null,
+        completed_at: null,
+        cancelled_at: null,
       }),
     ),
-    update: jest.fn((id, dto) =>
-      Promise.resolve({
-        ...mockAttendance,
-        ...dto,
-        scheduled_date: dto.scheduled_date
-          ? new Date(dto.scheduled_date)
-          : new Date(mockAttendance.scheduled_date),
-      }),
-    ),
-    remove: jest.fn((id) => Promise.resolve(undefined)),
+    update: jest.fn((id, dto) => Promise.resolve({ id, ...dto })),
+    remove: jest.fn(() => Promise.resolve(undefined)),
   };
 
   beforeEach(async () => {
@@ -113,8 +114,23 @@ describe('AttendanceController', () => {
     it('should return a single attendance', async () => {
       const result = await controller.findOne('1');
 
-      expect(result).toEqual(mockAttendance);
+      expect(result).toMatchObject({
+        id: 1,
+        patient_id: 1,
+        type: AttendanceType.SPIRITUAL,
+        status: AttendanceStatus.SCHEDULED,
+        scheduled_time: '14:30',
+        notes: 'Test notes',
+      });
       expect(service.findOne).toHaveBeenCalledWith(1);
+    });
+
+    it('should throw ResourceNotFoundException when attendance not found', async () => {
+      jest.spyOn(service, 'findOne').mockResolvedValueOnce(null);
+
+      await expect(controller.findOne('999')).rejects.toThrow(
+        ResourceNotFoundException,
+      );
     });
   });
 
@@ -132,6 +148,18 @@ describe('AttendanceController', () => {
       });
       expect(service.update).toHaveBeenCalledWith(1, updateDto);
     });
+
+    it('should throw ResourceNotFoundException when attendance not found for update', async () => {
+      jest.spyOn(service, 'update').mockResolvedValueOnce(null);
+
+      const updateDto: UpdateAttendanceDto = {
+        notes: 'Updated notes',
+      };
+
+      await expect(controller.update('999', updateDto)).rejects.toThrow(
+        ResourceNotFoundException,
+      );
+    });
   });
 
   describe('remove', () => {
@@ -140,6 +168,14 @@ describe('AttendanceController', () => {
 
       expect(result).toEqual(undefined);
       expect(service.remove).toHaveBeenCalledWith(1);
+    });
+
+    it('should throw ResourceNotFoundException when attendance not found for deletion', async () => {
+      jest.spyOn(service, 'findOne').mockResolvedValueOnce(null);
+
+      await expect(controller.remove('999')).rejects.toThrow(
+        ResourceNotFoundException,
+      );
     });
   });
 });

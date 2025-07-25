@@ -4,7 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { TreatmentRecord } from '../entities/treatment-record.entity';
 import { Attendance } from '../entities/attendance.entity';
 import { Repository, DeleteResult } from 'typeorm';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import {
   CreateTreatmentRecordDto,
   UpdateTreatmentRecordDto,
@@ -167,6 +167,84 @@ describe('TreatmentRecordService', () => {
         InvalidAttendanceStatusException,
       );
     });
+
+    it('should throw NotFoundException when attendance not found', async () => {
+      mockRepository.findOne.mockResolvedValueOnce(null); // No existing record
+      jest
+        .spyOn(mockAttendanceRepository, 'findOne')
+        .mockResolvedValueOnce(null); // Attendance not found
+
+      await expect(service.create(createDto)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should handle database unique constraint violation', async () => {
+      const dbError = {
+        code: '23505',
+        detail: 'Key (attendance_id)=(1) already exists.',
+      };
+
+      mockRepository.findOne.mockResolvedValueOnce(null); // No existing record found initially
+      jest
+        .spyOn(mockAttendanceRepository, 'findOne')
+        .mockResolvedValueOnce(mockAttendance);
+      mockRepository.save.mockRejectedValueOnce(dbError);
+
+      await expect(service.create(createDto)).rejects.toThrow(
+        DuplicateTreatmentRecordException,
+      );
+    });
+
+    it('should handle database error with invalid attendance ID format', async () => {
+      const dbError = {
+        code: '23505',
+        detail: 'Key (attendance_id)=(invalid) already exists.',
+      };
+
+      mockRepository.findOne.mockResolvedValueOnce(null);
+      jest
+        .spyOn(mockAttendanceRepository, 'findOne')
+        .mockResolvedValueOnce(mockAttendance);
+      mockRepository.save.mockRejectedValueOnce(dbError);
+
+      await expect(service.create(createDto)).rejects.toThrow(
+        DuplicateTreatmentRecordException,
+      );
+    });
+
+    it('should re-throw non-HTTP exceptions', async () => {
+      const genericError = new Error('Database connection failed');
+
+      mockRepository.findOne.mockResolvedValueOnce(null);
+      jest
+        .spyOn(mockAttendanceRepository, 'findOne')
+        .mockResolvedValueOnce(mockAttendance);
+      mockRepository.save.mockRejectedValueOnce(genericError);
+
+      await expect(service.create(createDto)).rejects.toThrow(
+        'Database connection failed',
+      );
+    });
+
+    it('should create record with valid return_in_weeks of 0 (null case)', async () => {
+      const createDtoWithNoReturnWeeks = {
+        ...createDto,
+        return_in_weeks: undefined,
+      };
+
+      mockRepository.findOne.mockResolvedValueOnce(null); // No existing record
+      jest
+        .spyOn(mockAttendanceRepository, 'findOne')
+        .mockResolvedValueOnce(mockAttendance);
+
+      const result = await service.create(createDtoWithNoReturnWeeks);
+
+      expect(result).toEqual({
+        id: expect.any(Number),
+        ...createDtoWithNoReturnWeeks,
+      });
+    });
   });
 
   describe('findAll', () => {
@@ -249,6 +327,64 @@ describe('TreatmentRecordService', () => {
       await expect(service.update(999, updateDto)).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it('should throw BadRequestException when no fields provided for update', async () => {
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockTreatmentRecord);
+
+      const emptyUpdateDto = {} as UpdateTreatmentRecordDto;
+
+      await expect(service.update(1, emptyUpdateDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw BadRequestException when return_in_weeks is invalid (too low)', async () => {
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockTreatmentRecord);
+
+      const invalidUpdateDto = {
+        return_in_weeks: -1,
+      } as UpdateTreatmentRecordDto;
+
+      await expect(service.update(1, invalidUpdateDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw BadRequestException when return_in_weeks is invalid (too high)', async () => {
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockTreatmentRecord);
+
+      const invalidUpdateDto = {
+        return_in_weeks: 53,
+      } as UpdateTreatmentRecordDto;
+
+      await expect(service.update(1, invalidUpdateDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should update successfully when return_in_weeks is undefined', async () => {
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockTreatmentRecord);
+
+      const updateDto = {
+        food: 'Updated food only',
+      } as UpdateTreatmentRecordDto;
+
+      await service.update(1, updateDto);
+
+      expect(repository.merge).toHaveBeenCalledWith(
+        mockTreatmentRecord,
+        updateDto,
+      );
+      expect(repository.save).toHaveBeenCalled();
     });
   });
 

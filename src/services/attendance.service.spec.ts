@@ -275,11 +275,234 @@ describe('AttendanceService', () => {
     });
   });
 
+  describe('remove', () => {
+    it('should remove an attendance', async () => {
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(mockAttendance);
+
+      await service.remove(1);
+
+      expect(repository.delete).toHaveBeenCalledWith(1);
+    });
+
+    it('should throw ResourceNotFoundException when attendance not found for deletion', async () => {
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(null);
+
+      await expect(service.remove(999)).rejects.toThrow(
+        ResourceNotFoundException,
+      );
+    });
+
+    it('should throw InvalidAttendanceStatusTransitionException when trying to delete completed attendance', async () => {
+      const completedAttendance = {
+        ...mockAttendance,
+        status: AttendanceStatus.COMPLETED,
+      } as Attendance;
+
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(completedAttendance);
+
+      await expect(service.remove(1)).rejects.toThrow(
+        InvalidAttendanceStatusTransitionException,
+      );
+    });
+
+    it('should throw ResourceNotFoundException when delete affects no rows', async () => {
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(mockAttendance);
+      jest
+        .spyOn(repository, 'delete')
+        .mockResolvedValueOnce({ affected: 0, raw: {} } as DeleteResult);
+
+      await expect(service.remove(1)).rejects.toThrow(
+        ResourceNotFoundException,
+      );
+    });
+  });
+
+  describe('update', () => {
+    it('should update attendance without status change', async () => {
+      const updateDto = {
+        notes: 'Updated notes only',
+      };
+
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(mockAttendance);
+
+      await service.update(1, updateDto);
+
+      expect(repository.merge).toHaveBeenCalledWith(mockAttendance, updateDto);
+      expect(repository.save).toHaveBeenCalled();
+    });
+  });
+
+  describe('validateScheduling edge cases', () => {
+    it('should handle light bath type when checking concurrent appointments', async () => {
+      const scheduleSettingRepository = module.get<Repository<ScheduleSetting>>(
+        getRepositoryToken(ScheduleSetting),
+      );
+
+      jest.spyOn(scheduleSettingRepository, 'findOne').mockResolvedValueOnce({
+        id: 1,
+        day_of_week: 2,
+        start_time: '09:00',
+        end_time: '17:00',
+        max_concurrent_spiritual: 2,
+        max_concurrent_light_bath: 1,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      } as ScheduleSetting);
+
+      jest.spyOn(repository, 'count').mockResolvedValueOnce(1);
+
+      const dto: CreateAttendanceDto = {
+        patient_id: 1,
+        type: AttendanceType.LIGHT_BATH,
+        scheduled_date: '2025-07-22',
+        scheduled_time: '14:30',
+        notes: 'Test notes',
+      };
+
+      await expect(service.create(dto)).rejects.toThrow(
+        AttendanceTimeSlotUnavailableException,
+      );
+    });
+
+    it('should allow creation when concurrent count is under limit', async () => {
+      const scheduleSettingRepository = module.get<Repository<ScheduleSetting>>(
+        getRepositoryToken(ScheduleSetting),
+      );
+
+      jest.spyOn(scheduleSettingRepository, 'findOne').mockResolvedValueOnce({
+        id: 1,
+        day_of_week: 2,
+        start_time: '09:00',
+        end_time: '17:00',
+        max_concurrent_spiritual: 3,
+        max_concurrent_light_bath: 3,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      } as ScheduleSetting);
+
+      jest.spyOn(repository, 'count').mockResolvedValueOnce(1);
+
+      const dto: CreateAttendanceDto = {
+        patient_id: 1,
+        type: AttendanceType.SPIRITUAL,
+        scheduled_date: '2025-07-22',
+        scheduled_time: '14:30',
+        notes: 'Test notes',
+      };
+
+      const result = await service.create(dto);
+      expect(result).toBeDefined();
+    });
+  });
+
   describe('findOne error cases', () => {
     it('should throw ResourceNotFoundException when attendance not found', async () => {
       jest.spyOn(repository, 'findOne').mockResolvedValueOnce(null);
       await expect(service.findOne(999)).rejects.toThrow(
         ResourceNotFoundException,
+      );
+    });
+  });
+
+  describe('additional status transition tests', () => {
+    it('should allow transition from CHECKED_IN to IN_PROGRESS', async () => {
+      const updateDto = {
+        status: AttendanceStatus.IN_PROGRESS,
+        notes: 'Starting treatment',
+      };
+
+      const mockCheckedInAttendance = {
+        ...mockAttendance,
+        status: AttendanceStatus.CHECKED_IN,
+      } as Attendance;
+
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockCheckedInAttendance);
+
+      await service.update(1, updateDto);
+      expect(repository.save).toHaveBeenCalled();
+    });
+
+    it('should allow transition from IN_PROGRESS to COMPLETED', async () => {
+      const updateDto = {
+        status: AttendanceStatus.COMPLETED,
+        notes: 'Treatment completed successfully',
+      };
+
+      const mockInProgressAttendance = {
+        ...mockAttendance,
+        status: AttendanceStatus.IN_PROGRESS,
+      } as Attendance;
+
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockInProgressAttendance);
+
+      await service.update(1, updateDto);
+      expect(repository.save).toHaveBeenCalled();
+    });
+
+    it('should allow transition from SCHEDULED to CANCELLED', async () => {
+      const updateDto = {
+        status: AttendanceStatus.CANCELLED,
+        notes: 'Patient cancelled appointment',
+      };
+
+      const mockScheduledAttendance = {
+        ...mockAttendance,
+        status: AttendanceStatus.SCHEDULED,
+      } as Attendance;
+
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockScheduledAttendance);
+
+      await service.update(1, updateDto);
+      expect(repository.save).toHaveBeenCalled();
+    });
+
+    it('should reject transition from COMPLETED to any other status', async () => {
+      const updateDto = {
+        status: AttendanceStatus.CANCELLED,
+        notes: 'Trying to cancel completed',
+      };
+
+      const mockCompletedAttendance = {
+        ...mockAttendance,
+        status: AttendanceStatus.COMPLETED,
+      } as Attendance;
+
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockCompletedAttendance);
+
+      await expect(service.update(1, updateDto)).rejects.toThrow(
+        InvalidAttendanceStatusTransitionException,
+      );
+    });
+
+    it('should reject transition from CANCELLED to any other status', async () => {
+      const updateDto = {
+        status: AttendanceStatus.SCHEDULED,
+        notes: 'Trying to reschedule cancelled',
+      };
+
+      const mockCancelledAttendance = {
+        ...mockAttendance,
+        status: AttendanceStatus.CANCELLED,
+      } as Attendance;
+
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockCancelledAttendance);
+
+      await expect(service.update(1, updateDto)).rejects.toThrow(
+        InvalidAttendanceStatusTransitionException,
       );
     });
   });

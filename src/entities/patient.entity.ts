@@ -5,7 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { PatientPriority, PatientStatus } from '../common/enums';
+import { PatientPriority, TreatmentStatus } from '../common/enums';
 
 @Entity('scp_patient')
 export class Patient {
@@ -27,10 +27,10 @@ export class Patient {
 
   @Column({
     type: 'enum',
-    enum: PatientStatus,
-    default: PatientStatus.NEW,
+    enum: TreatmentStatus,
+    default: TreatmentStatus.IN_TREATMENT,
   })
-  status: PatientStatus;
+  treatment_status: TreatmentStatus;
 
   @Column({ type: 'date', nullable: true })
   birth_date: Date;

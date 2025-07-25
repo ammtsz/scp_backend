@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PatientController } from './patient.controller';
 import { PatientService } from '../services/patient.service';
 import { CreatePatientDto, UpdatePatientDto } from '../dtos/patient.dto';
-import { PatientPriority, PatientStatus } from '../common/enums';
+import { PatientPriority, TreatmentStatus } from '../common/enums';
 
 describe('PatientController', () => {
   let controller: PatientController;
@@ -13,7 +13,7 @@ describe('PatientController', () => {
     name: 'John Doe',
     phone: '(11) 99999-9999',
     priority: PatientPriority.NORMAL,
-    status: PatientStatus.NEW,
+    treatment_status: TreatmentStatus.IN_TREATMENT,
     created_at: new Date(),
     updated_at: new Date(),
   };

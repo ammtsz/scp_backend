@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PatientPriority, PatientStatus } from '../common/enums';
+import { PatientPriority, TreatmentStatus } from '../common/enums';
 
 export class CreatePatientDto {
   @ApiProperty({
@@ -42,14 +42,14 @@ export class CreatePatientDto {
   priority?: PatientPriority = PatientPriority.NORMAL;
 
   @ApiPropertyOptional({
-    description: 'Patient current status',
-    enum: PatientStatus,
-    default: PatientStatus.NEW,
-    example: PatientStatus.NEW,
+    description: 'Patient treatment status',
+    enum: TreatmentStatus,
+    default: TreatmentStatus.IN_TREATMENT,
+    example: TreatmentStatus.IN_TREATMENT,
   })
-  @IsEnum(PatientStatus)
+  @IsEnum(TreatmentStatus)
   @IsOptional()
-  status?: PatientStatus = PatientStatus.NEW;
+  treatment_status?: TreatmentStatus = TreatmentStatus.IN_TREATMENT;
 
   @ApiPropertyOptional({
     description: 'Patient birth date',
@@ -107,11 +107,11 @@ export class PatientResponseDto {
   priority: PatientPriority;
 
   @ApiProperty({
-    description: 'Patient current status',
-    enum: PatientStatus,
-    example: PatientStatus.NEW,
+    description: 'Patient treatment status',
+    enum: TreatmentStatus,
+    example: TreatmentStatus.IN_TREATMENT,
   })
-  status: PatientStatus;
+  treatment_status: TreatmentStatus;
 
   @ApiPropertyOptional({
     description: 'Patient birth date',

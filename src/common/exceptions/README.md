@@ -17,7 +17,7 @@ This document outlines the exception handling patterns and best practices for th
 
 - `DuplicatePatientException`: When attempting to create a patient that already exists
 - `InvalidPatientPriorityException`: When an invalid priority is assigned
-- `PatientStatusUpdateException`: When an invalid status transition is attempted
+- `TreatmentStatusUpdateException`: When an invalid treatment status transition is attempted
 - `PatientHasActiveAttendancesException`: When trying to delete a patient with active attendances
 - `InvalidPhoneFormatException`: When phone number format is invalid
 

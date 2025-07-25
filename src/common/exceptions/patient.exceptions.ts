@@ -23,7 +23,7 @@ export class InvalidPatientPriorityException extends BaseException {
   }
 }
 
-export class PatientStatusUpdateException extends BaseException {
+export class TreatmentStatusUpdateException extends BaseException {
   constructor(
     patientId: number,
     currentStatus: string,

@@ -11,13 +11,11 @@ CREATE TYPE PATIENT_PRIORITY AS ENUM (
     '3'  -- Normal: Standard priority level
 );
 
--- Patient treatment status in the system
-CREATE TYPE PATIENT_STATUS AS ENUM (
-    'new',         -- Just registered
-    'in_progress', -- Currently under treatment
-    'active',      -- Regular attendance
-    'terminated',  -- Treatment stopped
-    'finished'     -- Treatment completed
+-- Treatment status in the system
+CREATE TYPE TREATMENT_STATUS AS ENUM (
+    'T',  -- Em tratamento (Under treatment)
+    'A',  -- Alta médica espiritual (Spiritual medical discharge)
+    'F'   -- Faltas consecutivas (Consecutive absences)
 );
 
 -- Types of medical treatments available
@@ -42,7 +40,7 @@ CREATE TABLE scp_patient (
     name VARCHAR(100) NOT NULL,
     phone VARCHAR(20),
     priority PATIENT_PRIORITY DEFAULT '3',      -- Default to normal priority
-    status PATIENT_STATUS DEFAULT 'new',
+    treatment_status TREATMENT_STATUS DEFAULT 'T',  -- Default to under treatment
     birth_date DATE,
     main_complaint TEXT,
     start_date DATE DEFAULT CURRENT_DATE,       -- Treatment start date
@@ -198,7 +196,7 @@ INSERT INTO
         name,
         phone,
         priority,
-        status,
+        treatment_status,
         birth_date,
         main_complaint
     )
@@ -206,7 +204,7 @@ VALUES (
         'Maria Silva',
         '(11) 99999-1111',
         '3',
-        'active',
+        'T',
         '1980-05-15',
         'Dores de cabeça'
     ),
@@ -214,7 +212,7 @@ VALUES (
         'João Santos',
         '(11) 99999-2222',
         '2',
-        'new',
+        'T',
         '1975-03-22',
         'Insônia'
     ),
@@ -222,7 +220,7 @@ VALUES (
         'Ana Paula',
         '(11) 99999-3333',
         '1',
-        'in_progress',
+        'T',
         '1990-08-10',
         'Ansiedade'
     );
@@ -305,7 +303,7 @@ CREATE INDEX idx_attendances_timestamps ON scp_attendance (
 
 CREATE INDEX idx_treatment_records_attendance ON scp_treatment_record (attendance_id);
 
-CREATE INDEX idx_patients_status ON scp_patient (status);
+CREATE INDEX idx_patients_treatment_status ON scp_patient (treatment_status);
 
 CREATE INDEX idx_patients_priority ON scp_patient (priority);
 

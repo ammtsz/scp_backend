@@ -4,7 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Patient } from '../entities/patient.entity';
 import { Attendance } from '../entities/attendance.entity';
 import { CreatePatientDto } from '../dtos/patient.dto';
-import { PatientPriority, PatientStatus } from '../common/enums';
+import { PatientPriority, TreatmentStatus } from '../common/enums';
 import { Repository, DeleteResult } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 
@@ -17,7 +17,7 @@ describe('PatientService', () => {
     name: 'John Doe',
     phone: '(11) 99999-9999',
     priority: PatientPriority.NORMAL,
-    status: PatientStatus.NEW,
+    treatment_status: TreatmentStatus.IN_TREATMENT,
     created_at: new Date(),
     updated_at: new Date(),
   };
@@ -25,13 +25,15 @@ describe('PatientService', () => {
   const mockRepository = {
     create: jest.fn().mockImplementation((dto) => ({
       ...dto,
-      status: dto.status || PatientStatus.NEW,
+      treatment_status: dto.treatment_status || TreatmentStatus.IN_TREATMENT,
     })),
-    save: jest
-      .fn()
-      .mockImplementation((patient) =>
-        Promise.resolve({ id: 1, ...patient, status: PatientStatus.NEW }),
-      ),
+    save: jest.fn().mockImplementation((patient) =>
+      Promise.resolve({
+        id: 1,
+        ...patient,
+        treatment_status: TreatmentStatus.IN_TREATMENT,
+      }),
+    ),
     merge: jest.fn().mockImplementation((obj, dto) => ({ ...obj, ...dto })),
     find: jest.fn().mockResolvedValue([mockPatient]),
     findOne: jest.fn().mockResolvedValue(mockPatient),
@@ -85,7 +87,7 @@ describe('PatientService', () => {
       expect(result).toEqual({
         id: expect.any(Number),
         ...createDto,
-        status: PatientStatus.NEW,
+        treatment_status: TreatmentStatus.IN_TREATMENT,
       });
       expect(repository.create).toHaveBeenCalledWith(createDto);
       expect(repository.save).toHaveBeenCalled();

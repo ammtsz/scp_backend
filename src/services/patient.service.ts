@@ -4,12 +4,12 @@ import { Repository } from 'typeorm';
 import { Patient } from '../entities/patient.entity';
 import { Attendance } from '../entities/attendance.entity';
 import { CreatePatientDto, UpdatePatientDto } from '../dtos/patient.dto';
-import { AttendanceStatus } from '../common/enums';
+import { AttendanceStatus, TreatmentStatus } from '../common/enums';
 import {
   ValidationException,
   DuplicatePatientException,
   InvalidPatientPriorityException,
-  PatientStatusUpdateException,
+  TreatmentStatusUpdateException,
   PatientHasActiveAttendancesException,
 } from '../common/exceptions';
 @Injectable()
@@ -77,24 +77,36 @@ export class PatientService {
       );
     }
 
-    if (updatePatientDto.status && updatePatientDto.status !== patient.status) {
+    if (
+      updatePatientDto.treatment_status &&
+      updatePatientDto.treatment_status !== patient.treatment_status
+    ) {
       // Define valid status transitions
-      const validTransitions = {
-        new: ['in_progress', 'active', 'terminated', 'finished'],
-        in_progress: ['active', 'terminated'],
-        active: ['terminated'],
-        terminated: [],
-        finished: [],
+      const validTransitions: Record<TreatmentStatus, TreatmentStatus[]> = {
+        [TreatmentStatus.IN_TREATMENT]: [
+          TreatmentStatus.DISCHARGED,
+          TreatmentStatus.ABSENT,
+        ],
+        [TreatmentStatus.DISCHARGED]: [
+          TreatmentStatus.IN_TREATMENT,
+          TreatmentStatus.ABSENT,
+        ],
+        [TreatmentStatus.ABSENT]: [
+          TreatmentStatus.IN_TREATMENT,
+          TreatmentStatus.DISCHARGED,
+        ],
       };
 
       if (
-        !validTransitions[patient.status]?.includes(updatePatientDto.status)
+        !validTransitions[patient.treatment_status]?.includes(
+          updatePatientDto.treatment_status,
+        )
       ) {
-        throw new PatientStatusUpdateException(
+        throw new TreatmentStatusUpdateException(
           id,
-          patient.status,
-          updatePatientDto.status,
-          'Invalid status transition',
+          patient.treatment_status,
+          updatePatientDto.treatment_status,
+          'Invalid treatment status transition',
         );
       }
     }

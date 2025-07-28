@@ -111,7 +111,7 @@ describe('Patient DTOs', () => {
     it('should transform birth_date string to Date object', () => {
       const dto = plainToClass(CreatePatientDto, {
         name: 'John Doe',
-        birth_date: '1990-01-01T00:00:00.000Z',
+        birth_date: '1990-06-15T12:00:00.000Z',
       });
 
       expect(dto.birth_date).toBeInstanceOf(Date);
@@ -139,13 +139,21 @@ describe('Patient DTOs', () => {
       expect(dto.discharge_date?.getFullYear()).toBe(2025);
     });
 
-    it('should inherit all validation from CreatePatientDto', async () => {
+    it('should allow all fields to be optional for partial updates', async () => {
       const dto = new UpdatePatientDto();
-      dto.name = '';
+      // No fields set - should be valid for partial updates
+
+      const errors = await validate(dto);
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should validate fields when they are provided', async () => {
+      const dto = new UpdatePatientDto();
+      dto.phone = 'invalid-phone'; // Invalid phone format should fail validation
 
       const errors = await validate(dto);
       expect(errors).toHaveLength(1);
-      expect(errors[0].property).toBe('name');
+      expect(errors[0].property).toBe('phone');
     });
   });
 
@@ -154,8 +162,12 @@ describe('Patient DTOs', () => {
       const dto = new PatientResponseDto();
       dto.id = 1;
       dto.name = 'Test';
+      dto.phone = '(11) 99999-9999'; // Set optional property
       dto.priority = PatientPriority.NORMAL;
       dto.treatment_status = TreatmentStatus.IN_TREATMENT;
+      dto.birth_date = new Date(); // Set optional property
+      dto.main_complaint = 'Test complaint'; // Set optional property
+      dto.discharge_date = new Date(); // Set optional property
       dto.start_date = new Date();
       dto.created_at = new Date();
       dto.updated_at = new Date();

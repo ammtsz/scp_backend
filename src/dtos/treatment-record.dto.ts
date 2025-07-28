@@ -87,7 +87,83 @@ export class CreateTreatmentRecordDto {
   notes?: string;
 }
 
-export class UpdateTreatmentRecordDto extends CreateTreatmentRecordDto {}
+export class UpdateTreatmentRecordDto {
+  @ApiPropertyOptional({
+    description: 'ID of the related attendance',
+    example: 1,
+  })
+  @IsNumber()
+  @IsOptional()
+  attendance_id?: number;
+
+  @ApiPropertyOptional({
+    description: 'Food recommendations',
+    example: 'Avoid dairy products',
+  })
+  @IsString()
+  @IsOptional()
+  food?: string;
+
+  @ApiPropertyOptional({
+    description: 'Water recommendations',
+    example: 'Drink 2L of fluidized water daily',
+  })
+  @IsString()
+  @IsOptional()
+  water?: string;
+
+  @ApiPropertyOptional({
+    description: 'Ointment recommendations',
+    example: 'Apply chamomile ointment before bed',
+  })
+  @IsString()
+  @IsOptional()
+  ointments?: string;
+
+  @ApiPropertyOptional({
+    description: 'Whether light bath treatment was given',
+    example: true,
+  })
+  @IsBoolean()
+  @IsOptional()
+  light_bath?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Whether rod treatment was given',
+    example: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  rod?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Whether spiritual treatment was given',
+    example: true,
+  })
+  @IsBoolean()
+  @IsOptional()
+  spiritual_treatment?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Number of weeks until next appointment',
+    minimum: 1,
+    maximum: 52,
+    example: 2,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  @Max(52)
+  return_in_weeks?: number;
+
+  @ApiPropertyOptional({
+    description: 'Additional treatment notes',
+    example: 'Patient showed improvement in energy levels',
+  })
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
 
 export class TreatmentRecordResponseDto {
   @ApiProperty({

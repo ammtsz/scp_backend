@@ -19,7 +19,7 @@ export class CreateAttendanceDto {
   @ApiProperty({
     description: 'Type of attendance',
     enum: AttendanceType,
-    example: 'FIRST_TIME',
+    example: AttendanceType.SPIRITUAL,
   })
   @IsEnum(AttendanceType)
   @IsNotEmpty()
@@ -36,7 +36,7 @@ export class CreateAttendanceDto {
 
   @ApiProperty({
     description: 'Time of attendance',
-    example: '14:30',
+    example: '19:30',
     pattern: 'HH:mm',
   })
   @IsString()
@@ -57,13 +57,77 @@ export class CreateAttendanceDto {
 
 export class UpdateAttendanceDto {
   @ApiPropertyOptional({
+    description: 'Updated type of attendance',
+    enum: AttendanceType,
+    example: AttendanceType.SPIRITUAL,
+  })
+  @IsEnum(AttendanceType)
+  @IsOptional()
+  type?: AttendanceType;
+
+  @ApiPropertyOptional({
     description: 'Status of attendance',
     enum: AttendanceStatus,
-    example: 'IN_PROGRESS',
+    example: AttendanceStatus.IN_PROGRESS,
   })
   @IsEnum(AttendanceStatus)
   @IsOptional()
   status?: AttendanceStatus;
+
+  @ApiPropertyOptional({
+    description: 'Updated scheduled date',
+    example: '2025-08-06',
+    format: 'YYYY-MM-DD',
+  })
+  @IsDateString()
+  @IsOptional()
+  scheduled_date?: string;
+
+  @ApiPropertyOptional({
+    description: 'Updated scheduled time',
+    example: '19:30',
+    pattern: 'HH:mm',
+  })
+  @IsString()
+  @IsOptional()
+  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, {
+    message: 'Time must be in format HH:mm',
+  })
+  scheduled_time?: string;
+
+  @ApiPropertyOptional({
+    description: 'Updated check-in timestamp',
+    example: '2025-08-06T19:30:00Z',
+  })
+  @IsDateString()
+  @IsOptional()
+  checked_in_at?: Date;
+
+  @ApiPropertyOptional({
+    description: 'Updated start timestamp',
+    example: '2025-08-06T19:35:00Z',
+  })
+  @IsDateString()
+  @IsOptional()
+  started_at?: Date;
+
+  @ApiPropertyOptional({
+    description: 'Updated completion timestamp',
+    example: '2025-08-06T20:00:00Z',
+  })
+  @IsDateString()
+  @IsOptional()
+  completed_at?: Date;
+
+  @ApiPropertyOptional({
+    description: 'Updated cancellation timestamp',
+    example: null,
+    nullable: true,
+  })
+  @IsDateString()
+  @IsOptional()
+  cancelled_at?: Date;
+
 
   @ApiPropertyOptional({
     description: 'Updated notes',
@@ -84,50 +148,53 @@ export class AttendanceResponseDto {
   @ApiProperty({
     description: 'Type of attendance',
     enum: AttendanceType,
-    example: 'FIRST_TIME',
+    example: AttendanceType.SPIRITUAL,
   })
   type: AttendanceType;
 
   @ApiProperty({
     description: 'Status of attendance',
     enum: AttendanceStatus,
-    example: 'SCHEDULED',
+    example: AttendanceStatus.SCHEDULED,
   })
   status: AttendanceStatus;
 
   @ApiProperty({
     description: 'Date of attendance',
-    example: '2025-07-22',
+    example: '2025-08-06',
+    format: 'YYYY-MM-DD',
   })
   scheduled_date: string;
 
   @ApiProperty({
     description: 'Time of attendance',
-    example: '14:30',
+    example: '19:30',
+    pattern: 'HH:mm',
   })
   scheduled_time: string;
 
   @ApiPropertyOptional({
     description: 'Check-in timestamp',
-    example: '2025-07-22T14:30:00Z',
+    example: '2025-08-06T19:30:00Z',
   })
   checked_in_at?: Date;
 
   @ApiPropertyOptional({
     description: 'Start timestamp',
-    example: '2025-07-22T14:35:00Z',
+    example: '2025-08-06T19:35:00Z',
   })
   started_at?: Date;
 
   @ApiPropertyOptional({
     description: 'Completion timestamp',
-    example: '2025-07-22T15:00:00Z',
+    example: '2025-08-06T20:00:00Z',
   })
   completed_at?: Date;
 
   @ApiPropertyOptional({
     description: 'Cancellation timestamp',
     example: null,
+    nullable: true,
   })
   cancelled_at?: Date;
 
@@ -136,13 +203,13 @@ export class AttendanceResponseDto {
 
   @ApiProperty({
     description: 'Creation timestamp',
-    example: '2025-07-22T14:30:00Z',
+    example: '2025-08-06T19:30:00Z',
   })
   created_at: Date;
 
   @ApiProperty({
     description: 'Last update timestamp',
-    example: '2025-07-22T14:30:00Z',
+    example: '2025-08-06T19:30:00Z',
   })
   updated_at: Date;
 }

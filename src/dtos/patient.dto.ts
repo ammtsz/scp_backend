@@ -69,7 +69,63 @@ export class CreatePatientDto {
   main_complaint?: string;
 }
 
-export class UpdatePatientDto extends CreatePatientDto {
+export class UpdatePatientDto {
+  @ApiPropertyOptional({
+    description: 'Patient full name',
+    example: 'John Doe',
+  })
+  @IsString()
+  @IsOptional()
+  @IsNotEmpty()
+  name?: string;
+
+  @ApiPropertyOptional({
+    description: 'Patient phone number',
+    example: '(11) 99999-9999',
+    pattern: '(XX) XXXXX-XXXX or (XX) XXXX-XXXX',
+  })
+  @IsString()
+  @IsOptional()
+  @Matches(/^\(\d{2}\)\s\d{4,5}-\d{4}$/, {
+    message: 'Phone must be in format (XX) XXXXX-XXXX or (XX) XXXX-XXXX',
+  })
+  phone?: string;
+
+  @ApiPropertyOptional({
+    description: 'Patient priority level',
+    enum: PatientPriority,
+    example: PatientPriority.NORMAL,
+  })
+  @IsEnum(PatientPriority)
+  @IsOptional()
+  priority?: PatientPriority;
+
+  @ApiPropertyOptional({
+    description: 'Patient treatment status',
+    enum: TreatmentStatus,
+    example: TreatmentStatus.IN_TREATMENT,
+  })
+  @IsEnum(TreatmentStatus)
+  @IsOptional()
+  treatment_status?: TreatmentStatus;
+
+  @ApiPropertyOptional({
+    description: 'Patient birth date',
+    example: '1990-01-01',
+  })
+  @IsDate()
+  @IsOptional()
+  @Type(() => Date)
+  birth_date?: Date;
+
+  @ApiPropertyOptional({
+    description: 'Main health complaint',
+    example: 'Frequent headaches',
+  })
+  @IsString()
+  @IsOptional()
+  main_complaint?: string;
+
   @ApiPropertyOptional({
     description: 'Patient discharge date',
     example: '2025-12-31',

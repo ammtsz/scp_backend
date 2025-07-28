@@ -89,15 +89,23 @@ export class AttendanceService {
   }
 
   private async validateScheduling(dto: CreateAttendanceDto): Promise<void> {
+    // Parse date string reliably to avoid timezone issues
+    const [year, month, day] = dto.scheduled_date.split('-').map(Number);
+    const scheduledDate = new Date(year, month - 1, day); // month is 0-indexed
+    const dayOfWeek = scheduledDate.getDay();
+
     const setting = await this.scheduleSettingRepository.findOne({
       where: {
-        day_of_week: new Date(dto.scheduled_date).getDay(),
+        day_of_week: dayOfWeek,
         is_active: true,
       },
     });
 
     if (!setting) {
-      throw new ResourceNotFoundException('scheduling settings', 'day');
+      throw new ResourceNotFoundException(
+        'scheduling settings',
+        `day ${dayOfWeek}`,
+      );
     }
 
     // Check if the time is within operational hours
@@ -115,7 +123,7 @@ export class AttendanceService {
     // Check concurrent appointments
     const concurrent = await this.attendanceRepository.count({
       where: {
-        scheduled_date: new Date(dto.scheduled_date),
+        scheduled_date: scheduledDate,
         scheduled_time: dto.scheduled_time,
         type: dto.type,
         status: AttendanceStatus.SCHEDULED,

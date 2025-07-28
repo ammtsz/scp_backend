@@ -139,6 +139,7 @@ CREATE TRIGGER ensure_one_treatment_record_per_attendance
 -- Operational hours and capacity configuration
 CREATE TABLE scp_schedule_setting (
     id SERIAL PRIMARY KEY,
+    -- day_of_week: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
     day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,

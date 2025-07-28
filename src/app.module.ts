@@ -8,6 +8,7 @@ import { PatientModule } from './modules/patient.module';
 import { AttendanceModule } from './modules/attendance.module';
 import { TreatmentRecordModule } from './modules/treatment-record.module';
 import { ScheduleSettingModule } from './modules/schedule-setting.module';
+import { AppThrottlerGuard } from './common/guards/throttler.guard';
 
 @Module({
   imports: [
@@ -32,6 +33,6 @@ import { ScheduleSettingModule } from './modules/schedule-setting.module';
     ScheduleSettingModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, AppThrottlerGuard],
 })
 export class AppModule {}

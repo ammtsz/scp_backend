@@ -29,7 +29,7 @@ describe('AttendanceController', () => {
   };
 
   const mockAttendanceService = {
-    create: jest.fn((dto) =>
+    create: jest.fn((dto) => 
       Promise.resolve({
         id: 1,
         ...dto,
@@ -40,6 +40,33 @@ describe('AttendanceController', () => {
       }),
     ),
     findAll: jest.fn(() => Promise.resolve([mockAttendance])),
+    findAllForAgenda: jest.fn(() => 
+      Promise.resolve([
+        {
+          attendance_id: 1,
+          attendance_patient_id: 1,
+          attendance_type: 'spiritual',
+          attendance_status: 'scheduled',
+          attendance_scheduled_date: '2025-07-22',
+          attendance_notes: 'Test notes',
+          patient_name: 'John Doe',
+          patient_priority: '2',
+        },
+      ])
+    ),
+    findNextScheduledDate: jest.fn(() => Promise.resolve('2025-07-23')),
+    bulkUpdateStatus: jest.fn(() => Promise.resolve(3)),
+    getAttendanceStats: jest.fn(() => 
+      Promise.resolve({
+        total: 5,
+        scheduled: 2,
+        checked_in: 1,
+        in_progress: 1,
+        completed: 1,
+        cancelled: 0,
+        by_type: { spiritual: 3, light_bath: 2 },
+      })
+    ),
     findOne: jest.fn(() =>
       Promise.resolve({
         id: 1,
@@ -176,6 +203,215 @@ describe('AttendanceController', () => {
       await expect(controller.remove('999')).rejects.toThrow(
         ResourceNotFoundException,
       );
+    });
+  });
+
+  describe('findAllForAgenda', () => {
+    it('should return agenda attendances without filters', async () => {
+      const result = await controller.findAllForAgenda();
+
+      expect(result).toEqual([
+        {
+          id: 1,
+          patient_id: 1,
+          type: 'spiritual',
+          status: 'scheduled',
+          scheduled_date: '2025-07-22',
+          notes: 'Test notes',
+          patient_name: 'John Doe',
+          patient_priority: '2',
+        },
+      ]);
+      expect(service.findAllForAgenda).toHaveBeenCalledWith({
+        status: undefined,
+        type: undefined,
+        limit: undefined,
+      });
+    });
+
+    it('should return agenda attendances with filters', async () => {
+      const result = await controller.findAllForAgenda('scheduled', 'spiritual', '10');
+
+      expect(result).toEqual([
+        {
+          id: 1,
+          patient_id: 1,
+          type: 'spiritual',
+          status: 'scheduled',
+          scheduled_date: '2025-07-22',
+          notes: 'Test notes',
+          patient_name: 'John Doe',
+          patient_priority: '2',
+        },
+      ]);
+      expect(service.findAllForAgenda).toHaveBeenCalledWith({
+        status: 'scheduled',
+        type: 'spiritual',
+        limit: 10,
+      });
+    });
+
+    it('should handle invalid limit parameter gracefully', async () => {
+      const result = await controller.findAllForAgenda(undefined, undefined, 'invalid');
+
+      expect(service.findAllForAgenda).toHaveBeenCalledWith({
+        status: undefined,
+        type: undefined,
+        limit: NaN,
+      });
+    });
+  });
+
+  describe('getNextScheduledDate', () => {
+    it('should return next scheduled date', async () => {
+      const result = await controller.getNextScheduledDate();
+
+      expect(result).toEqual({
+        next_date: '2025-07-23',
+      });
+      expect(service.findNextScheduledDate).toHaveBeenCalled();
+    });
+
+    it('should handle null response from service', async () => {
+      jest.spyOn(service, 'findNextScheduledDate').mockResolvedValueOnce(null);
+
+      const result = await controller.getNextScheduledDate();
+
+      expect(result).toEqual({
+        next_date: expect.any(String), // Should fallback to today's date
+      });
+    });
+
+    it('should handle service errors properly', async () => {
+      const error = new Error('Database connection failed');
+      jest.spyOn(service, 'findNextScheduledDate').mockRejectedValueOnce(error);
+
+      await expect(controller.getNextScheduledDate()).rejects.toThrow(error);
+    });
+  });
+
+  describe('bulkUpdateStatus', () => {
+    it('should bulk update attendance statuses', async () => {
+      const bulkUpdateDto = {
+        ids: [1, 2, 3],
+        status: 'checked_in',
+      };
+
+      const result = await controller.bulkUpdateStatus(bulkUpdateDto);
+
+      expect(result).toEqual({
+        updated: 3,
+        success: true,
+      });
+      expect(service.bulkUpdateStatus).toHaveBeenCalledWith(
+        [1, 2, 3],
+        'checked_in',
+      );
+    });
+
+    it('should handle empty ids array', async () => {
+      const bulkUpdateDto = {
+        ids: [],
+        status: 'checked_in',
+      };
+      
+      jest.spyOn(service, 'bulkUpdateStatus').mockResolvedValueOnce(0);
+
+      const result = await controller.bulkUpdateStatus(bulkUpdateDto);
+
+      expect(result).toEqual({
+        updated: 0,
+        success: true,
+      });
+      expect(service.bulkUpdateStatus).toHaveBeenCalledWith([], 'checked_in');
+    });
+
+    it('should handle bulk update errors', async () => {
+      const bulkUpdateDto = {
+        ids: [1, 2, 3],
+        status: 'invalid_status',
+      };
+      
+      const error = new Error('Invalid status');
+      jest.spyOn(service, 'bulkUpdateStatus').mockRejectedValueOnce(error);
+
+      await expect(controller.bulkUpdateStatus(bulkUpdateDto)).rejects.toThrow(error);
+    });
+
+    it('should handle partial updates', async () => {
+      const bulkUpdateDto = {
+        ids: [1, 2, 999], // 999 doesn't exist
+        status: 'completed',
+      };
+      
+      jest.spyOn(service, 'bulkUpdateStatus').mockResolvedValueOnce(2); // Only 2 updated
+
+      const result = await controller.bulkUpdateStatus(bulkUpdateDto);
+
+      expect(result).toEqual({
+        updated: 2,
+        success: true,
+      });
+    });
+  });
+
+  describe('getAttendanceStats', () => {
+    it('should return attendance statistics for default date (today)', async () => {
+      const result = await controller.getAttendanceStats();
+
+      expect(result).toEqual({
+        total: 5,
+        scheduled: 2,
+        checked_in: 1,
+        in_progress: 1,
+        completed: 1,
+        cancelled: 0,
+        by_type: { spiritual: 3, light_bath: 2 },
+      });
+      expect(service.getAttendanceStats).toHaveBeenCalledWith(
+        expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), // Today's date in YYYY-MM-DD format
+      );
+    });
+
+    it('should return attendance statistics for specific date', async () => {
+      const testDate = '2025-07-22';
+      const result = await controller.getAttendanceStats(testDate);
+
+      expect(result).toEqual({
+        total: 5,
+        scheduled: 2,
+        checked_in: 1,
+        in_progress: 1,
+        completed: 1,
+        cancelled: 0,
+        by_type: { spiritual: 3, light_bath: 2 },
+      });
+      expect(service.getAttendanceStats).toHaveBeenCalledWith(testDate);
+    });
+
+    it('should handle empty statistics', async () => {
+      const emptyStats = {
+        total: 0,
+        scheduled: 0,
+        checked_in: 0,
+        in_progress: 0,
+        completed: 0,
+        cancelled: 0,
+        by_type: { spiritual: 0, light_bath: 0 },
+      };
+      
+      jest.spyOn(service, 'getAttendanceStats').mockResolvedValueOnce(emptyStats);
+
+      const result = await controller.getAttendanceStats('2025-12-25');
+
+      expect(result).toEqual(emptyStats);
+    });
+
+    it('should handle service errors', async () => {
+      const error = new Error('Database error');
+      jest.spyOn(service, 'getAttendanceStats').mockRejectedValueOnce(error);
+
+      await expect(controller.getAttendanceStats('2025-07-22')).rejects.toThrow(error);
     });
   });
 });

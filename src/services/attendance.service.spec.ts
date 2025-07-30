@@ -34,23 +34,43 @@ describe('AttendanceService', () => {
     cancelled_at: null,
   } as Attendance;
 
+  const mockQueryBuilder = {
+    select: jest.fn().mockReturnThis(),
+    leftJoin: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    addOrderBy: jest.fn().mockReturnThis(), // Add missing addOrderBy method
+    offset: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    getRawMany: jest.fn().mockResolvedValue([
+      {
+        id: 1,
+        patient_name: 'John Doe',
+        scheduled_date: '2025-07-22',
+        scheduled_time: '14:00:00',
+        status: 'scheduled',
+        type: 'spiritual',
+      },
+    ]),
+    getOne: jest.fn().mockResolvedValue({
+      scheduled_date: new Date('2025-07-23'),
+    }),
+    update: jest.fn().mockReturnThis(),
+    set: jest.fn().mockReturnThis(),
+    whereInIds: jest.fn().mockReturnThis(),
+    execute: jest.fn().mockResolvedValue({ affected: 3 }),
+  };
+
   const mockRepository = {
-    create: jest.fn().mockImplementation((dto) => ({
-      ...dto,
-      status: AttendanceStatus.SCHEDULED,
-    })),
-    save: jest
-      .fn()
-      .mockImplementation((attendance) =>
-        Promise.resolve({ id: 1, ...attendance }),
-      ),
+    save: jest.fn().mockResolvedValue(mockAttendance), // Fix save to return the attendance
     find: jest.fn().mockResolvedValue([mockAttendance]),
     findOne: jest.fn().mockResolvedValue(mockAttendance),
-    update: jest.fn().mockResolvedValue(true),
     delete: jest.fn().mockResolvedValue({ affected: 1 }),
+    merge: jest.fn(),
     count: jest.fn().mockResolvedValue(0),
-    merge: jest.fn().mockImplementation((obj, dto) => ({ ...obj, ...dto })),
-    remove: jest.fn().mockResolvedValue(true),
+    create: jest.fn().mockReturnValue(mockAttendance),
+    createQueryBuilder: jest.fn(() => mockQueryBuilder),
   };
 
   beforeEach(async () => {
@@ -94,7 +114,11 @@ describe('AttendanceService', () => {
 
       expect(result).toMatchObject({
         id: expect.any(Number),
-        ...createDto,
+        patient_id: createDto.patient_id,
+        type: createDto.type,
+        scheduled_date: expect.any(Date), // Expect Date object since mockAttendance has a Date
+        scheduled_time: createDto.scheduled_time,
+        notes: createDto.notes,
       });
       expect(repository.create).toHaveBeenCalledWith(createDto);
       expect(repository.save).toHaveBeenCalled();
@@ -504,6 +528,386 @@ describe('AttendanceService', () => {
       await expect(service.update(1, updateDto)).rejects.toThrow(
         InvalidAttendanceStatusTransitionException,
       );
+    });
+  });
+
+  describe('findAllForAgenda', () => {
+    it('should return raw agenda data without filters', async () => {
+      const result = await service.findAllForAgenda();
+
+      expect(result).toEqual([
+        {
+          id: 1,
+          patient_name: 'John Doe',
+          scheduled_date: '2025-07-22',
+          scheduled_time: '14:00:00',
+          status: 'scheduled',
+          type: 'spiritual',
+        },
+      ]);
+      expect(repository.createQueryBuilder).toHaveBeenCalled();
+    });
+
+    it('should apply filters when provided', async () => {
+      const filters = {
+        status: AttendanceStatus.SCHEDULED,
+        type: 'spiritual',
+        limit: 5,
+      };
+
+      const mockQueryBuilderForFilters = {
+        select: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        offset: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockResolvedValue([
+          {
+            id: 1,
+            patient_name: 'John Doe',
+            scheduled_date: '2025-07-22',
+            scheduled_time: '14:00:00',
+            status: 'scheduled',
+            type: 'spiritual',
+          },
+        ]),
+      };
+      
+      jest.spyOn(repository, 'createQueryBuilder').mockReturnValueOnce(mockQueryBuilderForFilters as any);
+
+      const result = await service.findAllForAgenda(filters);
+
+      expect(mockQueryBuilderForFilters.andWhere).toHaveBeenCalledWith(
+        'attendance.status = :status',
+        { status: AttendanceStatus.SCHEDULED }
+      );
+      expect(mockQueryBuilderForFilters.andWhere).toHaveBeenCalledWith(
+        'attendance.type = :type',
+        { type: 'spiritual' }
+      );
+      expect(mockQueryBuilderForFilters.limit).toHaveBeenCalledWith(5);
+    });
+
+    it('should handle empty filters', async () => {
+      const filters = {};
+      const result = await service.findAllForAgenda(filters);
+
+      expect(result).toBeDefined();
+      expect(repository.createQueryBuilder).toHaveBeenCalled();
+    });
+  });
+
+  describe('findNextScheduledDate', () => {
+    it('should return next scheduled date as string', async () => {
+      const result = await service.findNextScheduledDate();
+
+      expect(result).toBe('2025-07-23');
+      expect(repository.createQueryBuilder).toHaveBeenCalled();
+    });
+
+    it('should return null when no future attendances found', async () => {
+      // Create a new mock that returns null
+      const mockQueryBuilderForNull = {
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(null),
+      };
+      
+      jest.spyOn(repository, 'createQueryBuilder').mockReturnValueOnce(mockQueryBuilderForNull as any);
+
+      const result = await service.findNextScheduledDate();
+
+      expect(result).toBeNull();
+    });
+
+    it('should handle date string conversion correctly', async () => {
+      const mockQueryBuilderForString = {
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue({
+          scheduled_date: '2025-07-25', // String format
+        }),
+      };
+      
+      jest.spyOn(repository, 'createQueryBuilder').mockReturnValueOnce(mockQueryBuilderForString as any);
+
+      const result = await service.findNextScheduledDate();
+
+      expect(result).toBe('2025-07-25');
+    });
+
+    it('should handle errors gracefully', async () => {
+      const mockQueryBuilderForError = {
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockRejectedValue(new Error('Database error')),
+      };
+      
+      jest.spyOn(repository, 'createQueryBuilder').mockReturnValueOnce(mockQueryBuilderForError as any);
+
+      await expect(service.findNextScheduledDate()).rejects.toThrow('Database error');
+    });
+  });
+
+  describe('bulkUpdateStatus', () => {
+    it('should update multiple attendances with status and timestamp', async () => {
+      const ids = [1, 2, 3];
+      const status = AttendanceStatus.CHECKED_IN;
+
+      const mockUpdateQueryBuilder = {
+        update: jest.fn().mockReturnThis(),
+        set: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockResolvedValue({ affected: 3 }),
+      };
+      
+      jest.spyOn(repository, 'createQueryBuilder').mockReturnValueOnce(mockUpdateQueryBuilder as any);
+
+      const result = await service.bulkUpdateStatus(ids, status);
+
+      expect(result).toBe(3);
+      expect(repository.createQueryBuilder).toHaveBeenCalled();
+      expect(mockUpdateQueryBuilder.update).toHaveBeenCalled();
+      expect(mockUpdateQueryBuilder.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: AttendanceStatus.CHECKED_IN,
+          checked_in_at: expect.any(Date),
+          updated_at: expect.any(Date),
+        })
+      );
+      expect(mockUpdateQueryBuilder.where).toHaveBeenCalledWith('id IN (:...ids)', { ids });
+    });
+
+    it('should set appropriate timestamp for IN_PROGRESS status', async () => {
+      const ids = [1];
+      const status = AttendanceStatus.IN_PROGRESS;
+
+      const mockUpdateQueryBuilder = {
+        update: jest.fn().mockReturnThis(),
+        set: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockResolvedValue({ affected: 1 }),
+      };
+      
+      jest.spyOn(repository, 'createQueryBuilder').mockReturnValueOnce(mockUpdateQueryBuilder as any);
+
+      await service.bulkUpdateStatus(ids, status);
+
+      expect(mockUpdateQueryBuilder.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: AttendanceStatus.IN_PROGRESS,
+          started_at: expect.any(Date),
+          updated_at: expect.any(Date),
+        })
+      );
+    });
+
+    it('should set appropriate timestamp for COMPLETED status', async () => {
+      const ids = [1];
+      const status = AttendanceStatus.COMPLETED;
+
+      const mockUpdateQueryBuilder = {
+        update: jest.fn().mockReturnThis(),
+        set: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockResolvedValue({ affected: 1 }),
+      };
+      
+      jest.spyOn(repository, 'createQueryBuilder').mockReturnValueOnce(mockUpdateQueryBuilder as any);
+
+      await service.bulkUpdateStatus(ids, status);
+
+      expect(mockUpdateQueryBuilder.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: AttendanceStatus.COMPLETED,
+          completed_at: expect.any(Date),
+          updated_at: expect.any(Date),
+        })
+      );
+    });
+
+    it('should set appropriate timestamp for CANCELLED status', async () => {
+      const ids = [1];
+      const status = AttendanceStatus.CANCELLED;
+
+      const mockUpdateQueryBuilder = {
+        update: jest.fn().mockReturnThis(),
+        set: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockResolvedValue({ affected: 1 }),
+      };
+      
+      jest.spyOn(repository, 'createQueryBuilder').mockReturnValueOnce(mockUpdateQueryBuilder as any);
+
+      await service.bulkUpdateStatus(ids, status);
+
+      expect(mockUpdateQueryBuilder.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: AttendanceStatus.CANCELLED,
+          cancelled_at: expect.any(Date),
+          updated_at: expect.any(Date),
+        })
+      );
+    });
+
+    it('should not set specific timestamp for SCHEDULED status', async () => {
+      const ids = [1];
+      const status = AttendanceStatus.SCHEDULED;
+
+      const mockUpdateQueryBuilder = {
+        update: jest.fn().mockReturnThis(),
+        set: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockResolvedValue({ affected: 1 }),
+      };
+      
+      jest.spyOn(repository, 'createQueryBuilder').mockReturnValueOnce(mockUpdateQueryBuilder as any);
+
+      await service.bulkUpdateStatus(ids, status);
+
+      expect(mockUpdateQueryBuilder.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: AttendanceStatus.SCHEDULED,
+          updated_at: expect.any(Date),
+        })
+      );
+      
+      const setCall = mockUpdateQueryBuilder.set.mock.calls[0][0];
+      expect(setCall).not.toHaveProperty('checked_in_at');
+      expect(setCall).not.toHaveProperty('started_at');
+      expect(setCall).not.toHaveProperty('completed_at');
+      expect(setCall).not.toHaveProperty('cancelled_at');
+    });
+
+    it('should handle empty ids array', async () => {
+      const mockUpdateQueryBuilder = {
+        update: jest.fn().mockReturnThis(),
+        set: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockResolvedValue({ affected: 0 }),
+      };
+      
+      jest.spyOn(repository, 'createQueryBuilder').mockReturnValueOnce(mockUpdateQueryBuilder as any);
+
+      const result = await service.bulkUpdateStatus([], AttendanceStatus.CHECKED_IN);
+
+      expect(result).toBe(0);
+      expect(repository.createQueryBuilder).toHaveBeenCalled();
+    });
+
+    it('should handle database errors', async () => {
+      const mockUpdateQueryBuilder = {
+        update: jest.fn().mockReturnThis(),
+        set: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockRejectedValue(new Error('Database error')),
+      };
+      
+      jest.spyOn(repository, 'createQueryBuilder').mockReturnValueOnce(mockUpdateQueryBuilder as any);
+
+      await expect(
+        service.bulkUpdateStatus([1, 2], AttendanceStatus.CHECKED_IN)
+      ).rejects.toThrow('Database error');
+    });
+  });
+
+  describe('getAttendanceStats', () => {
+    const mockAttendances = [
+      {
+        ...mockAttendance,
+        status: AttendanceStatus.SCHEDULED,
+        type: 'spiritual',
+      },
+      {
+        ...mockAttendance,
+        id: 2,
+        status: AttendanceStatus.CHECKED_IN,
+        type: 'spiritual',
+      },
+      {
+        ...mockAttendance,
+        id: 3,
+        status: AttendanceStatus.COMPLETED,
+        type: 'light_bath',
+      },
+    ];
+
+    it('should return attendance statistics for a date', async () => {
+      jest.spyOn(repository, 'find').mockResolvedValueOnce(mockAttendances as any);
+
+      const result = await service.getAttendanceStats('2025-07-22');
+
+      expect(result).toEqual({
+        total: 3,
+        scheduled: 1,
+        checked_in: 1,
+        in_progress: 0,
+        completed: 1,
+        cancelled: 0,
+        by_type: { spiritual: 2, light_bath: 1 },
+      });
+      expect(repository.find).toHaveBeenCalledWith({
+        where: { scheduled_date: new Date('2025-07-22') },
+      });
+    });
+
+    it('should return empty stats when no attendances found', async () => {
+      jest.spyOn(repository, 'find').mockResolvedValueOnce([]);
+
+      const result = await service.getAttendanceStats('2025-12-25');
+
+      expect(result).toEqual({
+        total: 0,
+        scheduled: 0,
+        checked_in: 0,
+        in_progress: 0,
+        completed: 0,
+        cancelled: 0,
+        by_type: { spiritual: 0, light_bath: 0 },
+      });
+    });
+
+    it('should handle all attendance statuses correctly', async () => {
+      const allStatusAttendances = [
+        { ...mockAttendance, status: AttendanceStatus.SCHEDULED, type: 'spiritual' },
+        { ...mockAttendance, status: AttendanceStatus.CHECKED_IN, type: 'spiritual' },
+        { ...mockAttendance, status: AttendanceStatus.IN_PROGRESS, type: 'light_bath' },
+        { ...mockAttendance, status: AttendanceStatus.COMPLETED, type: 'light_bath' },
+        { ...mockAttendance, status: AttendanceStatus.CANCELLED, type: 'spiritual' },
+      ];
+
+      jest.spyOn(repository, 'find').mockResolvedValueOnce(allStatusAttendances as any);
+
+      const result = await service.getAttendanceStats('2025-07-22');
+
+      expect(result).toEqual({
+        total: 5,
+        scheduled: 1,
+        checked_in: 1,
+        in_progress: 1,
+        completed: 1,
+        cancelled: 1,
+        by_type: { spiritual: 3, light_bath: 2 },
+      });
+    });
+
+    it('should convert date string to Date object', async () => {
+      jest.spyOn(repository, 'find').mockResolvedValueOnce([]);
+
+      await service.getAttendanceStats('2025-07-22');
+
+      expect(repository.find).toHaveBeenCalledWith({
+        where: { scheduled_date: new Date('2025-07-22') },
+      });
     });
   });
 });

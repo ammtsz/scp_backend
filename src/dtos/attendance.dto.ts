@@ -9,6 +9,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AttendanceType, AttendanceStatus } from '../common/enums';
+import { PatientResponseDto } from './patient.dto';
 
 export class CreateAttendanceDto {
   @ApiProperty({ description: 'Patient ID', example: 1 })
@@ -212,4 +213,67 @@ export class AttendanceResponseDto {
     example: '2025-08-06T19:30:00Z',
   })
   updated_at: Date;
+
+  @ApiPropertyOptional({
+    description: 'Patient information',
+    type: () => PatientResponseDto,
+  })
+  patient?: PatientResponseDto;
+}
+
+// Simplified DTO for agenda view - contains only essential information
+export class AttendanceAgendaDto {
+  @ApiProperty({ description: 'Attendance ID', example: 1 })
+  id: number;
+
+  @ApiProperty({ description: 'Patient ID', example: 1 })
+  patient_id: number;
+
+  @ApiProperty({
+    description: 'Type of attendance',
+    enum: AttendanceType,
+    example: AttendanceType.SPIRITUAL,
+  })
+  type: AttendanceType;
+
+  @ApiProperty({
+    description: 'Status of attendance',
+    enum: AttendanceStatus,
+    example: AttendanceStatus.SCHEDULED,
+  })
+  status: AttendanceStatus;
+
+  @ApiProperty({
+    description: 'Date of attendance',
+    example: '2025-07-29',
+    format: 'YYYY-MM-DD',
+  })
+  scheduled_date: string;
+
+  @ApiPropertyOptional({
+    description: 'Additional notes',
+  })
+  notes?: string;
+
+  @ApiProperty({
+    description: 'Patient name',
+    example: 'João Silva',
+  })
+  patient_name: string;
+
+  @ApiProperty({
+    description: 'Patient priority',
+    example: 'NORMAL',
+  })
+  patient_priority: string;
+}
+
+// DTO for next scheduled attendance date
+export class NextAttendanceDateDto {
+  @ApiProperty({
+    description: 'Next scheduled attendance date',
+    example: '2025-07-30',
+    format: 'YYYY-MM-DD',
+  })
+  next_date: string;
 }

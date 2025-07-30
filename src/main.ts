@@ -50,6 +50,8 @@ async function bootstrap(): Promise<void> {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     preflightContinue: false,
     optionsSuccessStatus: 204,
+    credentials: true, // Allow credentials
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Swagger documentation setup

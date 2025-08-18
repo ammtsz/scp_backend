@@ -128,9 +128,9 @@ export class AttendanceService {
       dto.scheduled_time > setting.end_time
     ) {
       throw new AttendanceTimeSlotUnavailableException(
+        dto.scheduled_date,
         dto.scheduled_time,
-        setting.start_time,
-        setting.end_time,
+        dto.type,
       );
     }
 

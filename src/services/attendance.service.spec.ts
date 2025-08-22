@@ -853,7 +853,7 @@ describe('AttendanceService', () => {
         in_progress: 0,
         completed: 1,
         cancelled: 0,
-        by_type: { spiritual: 2, light_bath: 1 },
+        by_type: { spiritual: 2, light_bath: 1, rod: 0 },
       });
       expect(repository.find).toHaveBeenCalledWith({
         where: { scheduled_date: new Date('2025-07-22') },
@@ -872,7 +872,7 @@ describe('AttendanceService', () => {
         in_progress: 0,
         completed: 0,
         cancelled: 0,
-        by_type: { spiritual: 0, light_bath: 0 },
+        by_type: { spiritual: 0, light_bath: 0, rod: 0 },
       });
     });
 
@@ -896,7 +896,7 @@ describe('AttendanceService', () => {
         in_progress: 1,
         completed: 1,
         cancelled: 1,
-        by_type: { spiritual: 3, light_bath: 2 },
+        by_type: { spiritual: 3, light_bath: 2, rod: 0 },
       });
     });
 

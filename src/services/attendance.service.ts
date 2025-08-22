@@ -311,7 +311,7 @@ export class AttendanceService {
     in_progress: number;
     completed: number;
     cancelled: number;
-    by_type: { spiritual: number; light_bath: number };
+    by_type: { spiritual: number; light_bath: number; rod: number };
   }> {
     const targetDate = new Date(date);
     const attendances = await this.attendanceRepository.find({
@@ -325,7 +325,7 @@ export class AttendanceService {
       in_progress: 0,
       completed: 0,
       cancelled: 0,
-      by_type: { spiritual: 0, light_bath: 0 },
+      by_type: { spiritual: 0, light_bath: 0, rod: 0 },
     };
 
     attendances.forEach(attendance => {
@@ -353,6 +353,8 @@ export class AttendanceService {
         stats.by_type.spiritual++;
       } else if (attendance.type === 'light_bath') {
         stats.by_type.light_bath++;
+      } else if (attendance.type === 'rod') {
+        stats.by_type.rod++;
       }
     });
 

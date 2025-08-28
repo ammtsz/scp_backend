@@ -18,6 +18,8 @@ export class AttendanceTransformer {
       started_at: attendance.started_at,
       completed_at: attendance.completed_at,
       cancelled_at: attendance.cancelled_at,
+      is_absence: attendance.is_absence,
+      absence_justified: attendance.absence_justified,
       notes: attendance.notes,
       created_at: attendance.created_at,
       updated_at: attendance.updated_at,
@@ -35,6 +37,7 @@ export class AttendanceTransformer {
         main_complaint: attendance.patient.main_complaint,
         start_date: attendance.patient.start_date,
         discharge_date: attendance.patient.discharge_date,
+        missing_appointments_streak: attendance.patient.missing_appointments_streak,
         created_at: attendance.patient.created_at,
         updated_at: attendance.patient.updated_at,
       };

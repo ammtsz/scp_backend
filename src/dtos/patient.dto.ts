@@ -44,12 +44,12 @@ export class CreatePatientDto {
   @ApiPropertyOptional({
     description: 'Patient treatment status',
     enum: TreatmentStatus,
-    default: TreatmentStatus.IN_TREATMENT,
-    example: TreatmentStatus.IN_TREATMENT,
+    default: TreatmentStatus.NEW_PATIENT,
+    example: TreatmentStatus.NEW_PATIENT,
   })
   @IsEnum(TreatmentStatus)
   @IsOptional()
-  treatment_status?: TreatmentStatus = TreatmentStatus.IN_TREATMENT;
+  treatment_status?: TreatmentStatus = TreatmentStatus.NEW_PATIENT;
 
   @ApiPropertyOptional({
     description: 'Patient birth date',
@@ -192,6 +192,12 @@ export class PatientResponseDto {
     example: '2025-07-22',
   })
   start_date: Date;
+
+  @ApiProperty({
+    description: 'Number of consecutive missing appointments',
+    example: 0,
+  })
+  missing_appointments_streak: number;
 
   @ApiProperty({
     description: 'Record creation date',

@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsDateString,
+  IsBoolean,
   Matches,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -129,6 +130,22 @@ export class UpdateAttendanceDto {
   @IsOptional()
   cancelled_at?: Date;
 
+  @ApiPropertyOptional({
+    description: 'Mark as absence',
+    example: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  is_absence?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Whether the absence is justified',
+    example: null,
+    nullable: true,
+  })
+  @IsBoolean()
+  @IsOptional()
+  absence_justified?: boolean;
 
   @ApiPropertyOptional({
     description: 'Updated notes',
@@ -198,6 +215,19 @@ export class AttendanceResponseDto {
     nullable: true,
   })
   cancelled_at?: Date;
+
+  @ApiProperty({
+    description: 'Whether this was a missed appointment',
+    example: false,
+  })
+  is_absence: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Whether the absence is justified',
+    example: null,
+    nullable: true,
+  })
+  absence_justified?: boolean;
 
   @ApiPropertyOptional({ description: 'Additional notes' })
   notes?: string;

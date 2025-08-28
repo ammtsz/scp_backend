@@ -5,6 +5,7 @@ export enum PatientPriority {
 }
 
 export enum TreatmentStatus {
+  NEW_PATIENT = 'N', // Novo paciente
   IN_TREATMENT = 'T', // Em tratamento
   DISCHARGED = 'A', // Alta médica espiritual
   ABSENT = 'F', // Faltas consecutivas

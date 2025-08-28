@@ -6,6 +6,7 @@ import {
   Max,
   Min,
   IsNotEmpty,
+  IsIn,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -49,6 +50,16 @@ export class CreateTreatmentRecordDto {
   @IsBoolean()
   @IsOptional()
   light_bath?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Color for light bath treatment',
+    example: 'azul',
+    enum: ['azul', 'verde', 'amarelo', 'vermelho', 'violeta', 'branco', 'laranja'],
+  })
+  @IsString()
+  @IsOptional()
+  @IsIn(['azul', 'verde', 'amarelo', 'vermelho', 'violeta', 'branco', 'laranja'])
+  light_bath_color?: string;
 
   @ApiPropertyOptional({
     description: 'Whether rod treatment was given',
@@ -129,6 +140,16 @@ export class UpdateTreatmentRecordDto {
   light_bath?: boolean;
 
   @ApiPropertyOptional({
+    description: 'Color for light bath treatment',
+    example: 'azul',
+    enum: ['azul', 'verde', 'amarelo', 'vermelho', 'violeta', 'branco', 'laranja'],
+  })
+  @IsString()
+  @IsOptional()
+  @IsIn(['azul', 'verde', 'amarelo', 'vermelho', 'violeta', 'branco', 'laranja'])
+  light_bath_color?: string;
+
+  @ApiPropertyOptional({
     description: 'Whether rod treatment was given',
     example: false,
   })
@@ -201,6 +222,13 @@ export class TreatmentRecordResponseDto {
     example: true,
   })
   light_bath?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Color for light bath treatment',
+    example: 'azul',
+    enum: ['azul', 'verde', 'amarelo', 'vermelho', 'violeta', 'branco', 'laranja'],
+  })
+  light_bath_color?: string;
 
   @ApiPropertyOptional({
     description: 'Whether rod treatment was given',

@@ -33,6 +33,7 @@ describe('PatientService', () => {
     main_complaint: 'Test complaint',
     start_date: new Date(),
     discharge_date: null,
+    missing_appointments_streak: 0,
     created_at: new Date(),
     updated_at: new Date(),
   };

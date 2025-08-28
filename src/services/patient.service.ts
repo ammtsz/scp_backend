@@ -83,6 +83,10 @@ export class PatientService {
     ) {
       // Define valid status transitions
       const validTransitions: Record<TreatmentStatus, TreatmentStatus[]> = {
+        [TreatmentStatus.NEW_PATIENT]: [
+          TreatmentStatus.IN_TREATMENT,
+          TreatmentStatus.ABSENT,
+        ],
         [TreatmentStatus.IN_TREATMENT]: [
           TreatmentStatus.DISCHARGED,
           TreatmentStatus.ABSENT,

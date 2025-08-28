@@ -397,7 +397,7 @@ describe('AttendanceController', () => {
         in_progress: 0,
         completed: 0,
         cancelled: 0,
-        by_type: { spiritual: 0, light_bath: 0 },
+        by_type: { spiritual: 0, light_bath: 0, rod: 0 },
       };
       
       jest.spyOn(service, 'getAttendanceStats').mockResolvedValueOnce(emptyStats);

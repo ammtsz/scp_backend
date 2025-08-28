@@ -13,6 +13,7 @@ CREATE TYPE PATIENT_PRIORITY AS ENUM (
 
 -- Treatment status in the system
 CREATE TYPE TREATMENT_STATUS AS ENUM (
+    'N',  -- Novo paciente (New patient)
     'T',  -- Em tratamento (Under treatment)
     'A',  -- Alta médica espiritual (Spiritual medical discharge)
     'F'   -- Faltas consecutivas (Consecutive absences)
@@ -40,11 +41,12 @@ CREATE TABLE scp_patient (
     name VARCHAR(100) NOT NULL,
     phone VARCHAR(20),
     priority PATIENT_PRIORITY DEFAULT '3',      -- Default to normal priority
-    treatment_status TREATMENT_STATUS DEFAULT 'T',  -- Default to under treatment
+    treatment_status TREATMENT_STATUS DEFAULT 'N',  -- Default to new patient
     birth_date DATE,
     main_complaint TEXT,
     start_date DATE DEFAULT CURRENT_DATE,       -- Treatment start date
     discharge_date DATE,                        -- Treatment end date
+    missing_appointments_streak INTEGER DEFAULT 0, -- Track consecutive missing appointments
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
@@ -66,6 +68,8 @@ CREATE TABLE scp_attendance (
     started_at TIMESTAMP,
     completed_at TIMESTAMP,
     cancelled_at TIMESTAMP,
+    is_absence BOOLEAN DEFAULT FALSE, -- Track if this was a missed appointment
+    absence_justified BOOLEAN DEFAULT NULL, -- NULL = not absence, TRUE = justified, FALSE = unjustified
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -79,6 +83,7 @@ CREATE TABLE scp_treatment_record (
     water TEXT,
     ointments TEXT,
     light_bath BOOLEAN DEFAULT false,
+    light_bath_color VARCHAR(20), -- Color for light bath treatment (e.g., 'azul', 'verde', 'amarelo', 'vermelho', 'violeta', 'branco')
     rod BOOLEAN DEFAULT false,
     spiritual_treatment BOOLEAN DEFAULT false,
     return_in_weeks INTEGER CHECK (
@@ -86,6 +91,12 @@ CREATE TABLE scp_treatment_record (
         AND return_in_weeks <= 52
     ),
     notes TEXT,
+    -- Phase 2: Enhanced Treatment Records + Location Management
+    location TEXT [] DEFAULT '{}', -- Array of treatment locations
+    custom_location TEXT, -- Custom location if not in predefined list
+    quantity INTEGER DEFAULT 1, -- Quantity of treatment applications
+    treatment_start_time TIMESTAMP, -- When treatment session started
+    treatment_end_time TIMESTAMP, -- When treatment session ended
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -224,6 +235,14 @@ VALUES (
         'T',
         '1990-08-10',
         'Ansiedade'
+    ),
+    (
+        'Carlos Silva',
+        '(11) 99999-4444',
+        '3',
+        'N',
+        '1985-12-05',
+        NULL
     );
 
 -- Sample attendances

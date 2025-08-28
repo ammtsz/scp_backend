@@ -105,7 +105,7 @@ describe('Patient DTOs', () => {
       dto.name = 'John Doe';
 
       expect(dto.priority).toBe(PatientPriority.NORMAL);
-      expect(dto.treatment_status).toBe(TreatmentStatus.IN_TREATMENT);
+      expect(dto.treatment_status).toBe(TreatmentStatus.NEW_PATIENT);
     });
 
     it('should transform birth_date string to Date object', () => {

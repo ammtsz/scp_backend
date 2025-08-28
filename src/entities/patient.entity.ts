@@ -28,7 +28,7 @@ export class Patient {
   @Column({
     type: 'enum',
     enum: TreatmentStatus,
-    default: TreatmentStatus.IN_TREATMENT,
+    default: TreatmentStatus.NEW_PATIENT,
   })
   treatment_status: TreatmentStatus;
 
@@ -43,6 +43,9 @@ export class Patient {
 
   @Column({ type: 'date', nullable: true })
   discharge_date: Date;
+
+  @Column({ type: 'integer', default: 0 })
+  missing_appointments_streak: number;
 
   @CreateDateColumn()
   created_at: Date;

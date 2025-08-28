@@ -37,6 +37,9 @@ export class TreatmentRecord {
   @Column({ default: false })
   light_bath: boolean;
 
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  light_bath_color: string;
+
   @Column({ default: false })
   rod: boolean;
 
@@ -48,6 +51,22 @@ export class TreatmentRecord {
 
   @Column({ type: 'text', nullable: true })
   notes: string;
+
+  // Enhanced fields for Phase 2: Location Management + Treatment Details
+  @Column('text', { array: true, default: [] })
+  location: string[];
+
+  @Column({ nullable: true })
+  custom_location: string;
+
+  @Column({ default: 1 })
+  quantity: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  treatment_start_time: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  treatment_end_time: Date;
 
   @CreateDateColumn()
   created_at: Date;

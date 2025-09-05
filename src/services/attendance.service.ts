@@ -166,17 +166,26 @@ export class AttendanceService {
       [AttendanceStatus.SCHEDULED]: [
         AttendanceStatus.CHECKED_IN,
         AttendanceStatus.CANCELLED,
+        AttendanceStatus.MISSED,
       ],
       [AttendanceStatus.CHECKED_IN]: [
+        AttendanceStatus.SCHEDULED,
         AttendanceStatus.IN_PROGRESS,
-        AttendanceStatus.CANCELLED,
-      ],
-      [AttendanceStatus.IN_PROGRESS]: [
         AttendanceStatus.COMPLETED,
         AttendanceStatus.CANCELLED,
       ],
-      [AttendanceStatus.COMPLETED]: [],
-      [AttendanceStatus.CANCELLED]: [],
+      [AttendanceStatus.IN_PROGRESS]: [
+        AttendanceStatus.CHECKED_IN,
+        AttendanceStatus.COMPLETED,
+        AttendanceStatus.CANCELLED,
+      ],
+      [AttendanceStatus.COMPLETED]: [
+        AttendanceStatus.CHECKED_IN,
+        AttendanceStatus.IN_PROGRESS,
+      ],
+      [AttendanceStatus.CANCELLED]: [
+        AttendanceStatus.SCHEDULED,
+      ],
     };
 
     if (!validTransitions[currentStatus]?.includes(newStatus)) {

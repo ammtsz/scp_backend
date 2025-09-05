@@ -15,7 +15,6 @@ export const AppDataSource = new DataSource({
   password: configService.get('POSTGRES_PASSWORD') || 'postgres',
   database: configService.get('POSTGRES_DB') || 'scp_db',
   entities: [__dirname + '/entities/*.entity{.ts,.js}'],
-  migrations: [__dirname + '/migrations/*{.ts,.js}'],
-  synchronize: false, // Disable synchronize when using migrations
+  synchronize: false, // Schema managed via init.sql
   logging: true,
 });

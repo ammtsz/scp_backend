@@ -23,4 +23,5 @@ export enum AttendanceStatus {
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
+  MISSED = 'missed',
 }

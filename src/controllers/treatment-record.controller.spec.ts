@@ -39,7 +39,6 @@ describe('TreatmentRecordController', () => {
     started_at: null,
     completed_at: null,
     cancelled_at: null,
-    is_absence: false,
     absence_justified: false,
     created_at: new Date(),
     updated_at: new Date(),

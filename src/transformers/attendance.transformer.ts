@@ -18,7 +18,6 @@ export class AttendanceTransformer {
       started_at: attendance.started_at,
       completed_at: attendance.completed_at,
       cancelled_at: attendance.cancelled_at,
-      is_absence: attendance.is_absence,
       absence_justified: attendance.absence_justified,
       notes: attendance.notes,
       created_at: attendance.created_at,

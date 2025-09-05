@@ -59,11 +59,7 @@ cp .env.example .env
 docker-compose up -d
 ```
 
-5. Run Migrations
-
-```bash
-npm run migration:run
-```
+The database will be automatically initialized with the complete schema from `init.sql`.
 
 ## 🏃‍♂️ Running the Application
 
@@ -142,9 +138,18 @@ src/
 ├── dtos/             # Data Transfer Objects (attendance.dto.ts, etc.)
 ├── transformers/     # Data transformers (attendance.transformer.ts, etc.)
 ├── repositories/     # Custom repositories
-├── migrations/       # Database migrations
 └── config/          # Configuration files
 ```
+
+## 📊 Database Schema
+
+The complete database schema is defined in `init.sql` and includes:
+
+- Patient management tables
+- Attendance scheduling system
+- Treatment records with comprehensive tracking
+- Proper relationships and constraints
+- Optimized indexes for performance
 
 ## 🔄 Data Flow
 

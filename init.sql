@@ -32,7 +32,8 @@ CREATE TYPE ATTENDANCE_STATUS AS ENUM (
     'checked_in',  -- Patient has arrived
     'in_progress', -- Treatment is ongoing
     'completed',   -- Treatment is finished
-    'cancelled'    -- Appointment was cancelled
+    'cancelled',   -- Appointment was cancelled
+    'missed'       -- Patient missed the appointment
 );
 
 -- Core patient information
@@ -68,7 +69,6 @@ CREATE TABLE scp_attendance (
     started_at TIMESTAMP,
     completed_at TIMESTAMP,
     cancelled_at TIMESTAMP,
-    is_absence BOOLEAN DEFAULT FALSE, -- Track if this was a missed appointment
     absence_justified BOOLEAN DEFAULT NULL, -- NULL = not absence, TRUE = justified, FALSE = unjustified
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

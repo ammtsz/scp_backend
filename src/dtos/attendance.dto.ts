@@ -131,14 +131,6 @@ export class UpdateAttendanceDto {
   cancelled_at?: Date;
 
   @ApiPropertyOptional({
-    description: 'Mark as absence',
-    example: false,
-  })
-  @IsBoolean()
-  @IsOptional()
-  is_absence?: boolean;
-
-  @ApiPropertyOptional({
     description: 'Whether the absence is justified',
     example: null,
     nullable: true,
@@ -215,12 +207,6 @@ export class AttendanceResponseDto {
     nullable: true,
   })
   cancelled_at?: Date;
-
-  @ApiProperty({
-    description: 'Whether this was a missed appointment',
-    example: false,
-  })
-  is_absence: boolean;
 
   @ApiPropertyOptional({
     description: 'Whether the absence is justified',

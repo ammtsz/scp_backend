@@ -490,10 +490,29 @@ describe('AttendanceService', () => {
       expect(repository.save).toHaveBeenCalled();
     });
 
-    it('should reject transition from COMPLETED to any other status', async () => {
+    it('should allow transition from SCHEDULED to MISSED', async () => {
       const updateDto = {
-        status: AttendanceStatus.CANCELLED,
-        notes: 'Trying to cancel completed',
+        status: AttendanceStatus.MISSED,
+        notes: 'Patient missed appointment',
+      };
+
+      const mockScheduledAttendance = {
+        ...mockAttendance,
+        status: AttendanceStatus.SCHEDULED,
+      } as Attendance;
+
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockScheduledAttendance);
+
+      await service.update(1, updateDto);
+      expect(repository.save).toHaveBeenCalled();
+    });
+
+    it('should reject invalid transition from COMPLETED to SCHEDULED', async () => {
+      const updateDto = {
+        status: AttendanceStatus.SCHEDULED,
+        notes: 'Trying to reschedule completed',
       };
 
       const mockCompletedAttendance = {
@@ -510,10 +529,10 @@ describe('AttendanceService', () => {
       );
     });
 
-    it('should reject transition from CANCELLED to any other status', async () => {
+    it('should reject invalid transition from CANCELLED to COMPLETED', async () => {
       const updateDto = {
-        status: AttendanceStatus.SCHEDULED,
-        notes: 'Trying to reschedule cancelled',
+        status: AttendanceStatus.COMPLETED,
+        notes: 'Trying to complete cancelled',
       };
 
       const mockCancelledAttendance = {
@@ -528,6 +547,91 @@ describe('AttendanceService', () => {
       await expect(service.update(1, updateDto)).rejects.toThrow(
         InvalidAttendanceStatusTransitionException,
       );
+    });
+
+    // Test new bidirectional transitions
+    it('should allow transition from CHECKED_IN to COMPLETED (direct completion)', async () => {
+      const updateDto = {
+        status: AttendanceStatus.COMPLETED,
+        notes: 'Direct completion',
+      };
+
+      const mockCheckedInAttendance = {
+        ...mockAttendance,
+        status: AttendanceStatus.CHECKED_IN,
+      } as Attendance;
+
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockCheckedInAttendance);
+      jest.spyOn(repository, 'merge').mockReturnValueOnce(mockCheckedInAttendance);
+      jest.spyOn(repository, 'save').mockResolvedValueOnce(mockCheckedInAttendance);
+
+      await service.update(1, updateDto);
+      expect(repository.save).toHaveBeenCalled();
+    });
+
+    it('should allow transition from CHECKED_IN to SCHEDULED (moving back)', async () => {
+      const updateDto = {
+        status: AttendanceStatus.SCHEDULED,
+        notes: 'Moving back to scheduled',
+      };
+
+      const mockCheckedInAttendance = {
+        ...mockAttendance,
+        status: AttendanceStatus.CHECKED_IN,
+      } as Attendance;
+
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockCheckedInAttendance);
+      jest.spyOn(repository, 'merge').mockReturnValueOnce(mockCheckedInAttendance);
+      jest.spyOn(repository, 'save').mockResolvedValueOnce(mockCheckedInAttendance);
+
+      await service.update(1, updateDto);
+      expect(repository.save).toHaveBeenCalled();
+    });
+
+    it('should allow transition from COMPLETED to CHECKED_IN (reopening)', async () => {
+      const updateDto = {
+        status: AttendanceStatus.CHECKED_IN,
+        notes: 'Reopening attendance',
+      };
+
+      const mockCompletedAttendance = {
+        ...mockAttendance,
+        status: AttendanceStatus.COMPLETED,
+      } as Attendance;
+
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockCompletedAttendance);
+      jest.spyOn(repository, 'merge').mockReturnValueOnce(mockCompletedAttendance);
+      jest.spyOn(repository, 'save').mockResolvedValueOnce(mockCompletedAttendance);
+
+      await service.update(1, updateDto);
+      expect(repository.save).toHaveBeenCalled();
+    });
+
+    it('should allow transition from CANCELLED to SCHEDULED (rescheduling)', async () => {
+      const updateDto = {
+        status: AttendanceStatus.SCHEDULED,
+        notes: 'Rescheduling cancelled appointment',
+      };
+
+      const mockCancelledAttendance = {
+        ...mockAttendance,
+        status: AttendanceStatus.CANCELLED,
+      } as Attendance;
+
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockCancelledAttendance);
+      jest.spyOn(repository, 'merge').mockReturnValueOnce(mockCancelledAttendance);
+      jest.spyOn(repository, 'save').mockResolvedValueOnce(mockCancelledAttendance);
+
+      await service.update(1, updateDto);
+      expect(repository.save).toHaveBeenCalled();
     });
   });
 

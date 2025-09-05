@@ -55,9 +55,6 @@ export class Attendance {
   @Column({ type: 'timestamp', nullable: true })
   cancelled_at: Date;
 
-  @Column({ type: 'boolean', default: false })
-  is_absence: boolean;
-
   @Column({ type: 'boolean', nullable: true })
   absence_justified: boolean;
 

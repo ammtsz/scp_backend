@@ -70,6 +70,7 @@ CREATE TABLE scp_attendance (
     completed_at TIMESTAMP,
     cancelled_at TIMESTAMP,
     absence_justified BOOLEAN DEFAULT NULL, -- NULL = not absence, TRUE = justified, FALSE = unjustified
+    absence_notes TEXT,
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

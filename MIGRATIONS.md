@@ -49,6 +49,33 @@ npm run migration:show
 
 Shows which migrations have been applied.
 
+## Phase 3 Migration: Absence Notes Support
+
+The migration `1725530000000-AddAbsenceNotesToAttendance.ts` adds support for storing specific notes about patient absences:
+
+### New Field Added:
+
+- **`absence_notes TEXT`** - Optional field for storing detailed notes explaining the reason for absence when marking attendance as missed
+
+This field is separate from the general `notes` field and is specifically used when:
+
+- Marking an attendance as MISSED status
+- Providing justification details for absence management
+- Maintaining audit trail of absence reasons
+
+### Usage:
+
+```typescript
+// Frontend API call
+await markAttendanceAsMissed(attendanceId, true, "Patient had medical emergency");
+
+// Backend DTO
+{
+  absence_justified: true,
+  absence_notes: "Patient had medical emergency"
+}
+```
+
 ### Generate New Migration
 
 ```bash

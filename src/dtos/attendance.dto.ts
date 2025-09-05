@@ -140,6 +140,14 @@ export class UpdateAttendanceDto {
   absence_justified?: boolean;
 
   @ApiPropertyOptional({
+    description: 'Notes explaining the reason for absence',
+    example: 'Patient had a medical emergency',
+  })
+  @IsString()
+  @IsOptional()
+  absence_notes?: string;
+
+  @ApiPropertyOptional({
     description: 'Updated notes',
     example: 'Patient reported improvement',
   })
@@ -214,6 +222,12 @@ export class AttendanceResponseDto {
     nullable: true,
   })
   absence_justified?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Notes explaining the reason for absence',
+    example: 'Patient had a medical emergency',
+  })
+  absence_notes?: string;
 
   @ApiPropertyOptional({ description: 'Additional notes' })
   notes?: string;

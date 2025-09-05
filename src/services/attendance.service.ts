@@ -186,6 +186,10 @@ export class AttendanceService {
       [AttendanceStatus.CANCELLED]: [
         AttendanceStatus.SCHEDULED,
       ],
+      [AttendanceStatus.MISSED]: [
+        AttendanceStatus.MISSED, // Allow updating missed attendance (e.g., to update absence notes)
+        AttendanceStatus.SCHEDULED, // Allow rescheduling missed appointments
+      ],
     };
 
     if (!validTransitions[currentStatus]?.includes(newStatus)) {

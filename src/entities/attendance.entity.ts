@@ -59,6 +59,9 @@ export class Attendance {
   absence_justified: boolean;
 
   @Column({ type: 'text', nullable: true })
+  absence_notes: string;
+
+  @Column({ type: 'text', nullable: true })
   notes: string;
 
   @CreateDateColumn()

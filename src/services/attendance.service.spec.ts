@@ -26,6 +26,8 @@ describe('AttendanceService', () => {
     scheduled_date: new Date('2025-07-22'),
     scheduled_time: '14:30',
     notes: 'Test notes',
+    absence_justified: null,
+    absence_notes: null,
     created_at: new Date(),
     updated_at: new Date(),
     checked_in_at: null,
@@ -293,6 +295,27 @@ describe('AttendanceService', () => {
       jest
         .spyOn(repository, 'findOne')
         .mockResolvedValueOnce(mockScheduledAttendance);
+
+      await service.update(1, updateDto);
+      expect(repository.save).toHaveBeenCalled();
+    });
+
+    it('should allow MISSED to MISSED status transition for updating absence notes', async () => {
+      const updateDto = {
+        status: AttendanceStatus.MISSED,
+        absence_notes: 'Updated absence reason',
+        absence_justified: false,
+      };
+
+      const mockMissedAttendance = {
+        ...mockAttendance,
+        status: AttendanceStatus.MISSED,
+        absence_notes: 'Original absence reason',
+      } as Attendance;
+
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValueOnce(mockMissedAttendance);
 
       await service.update(1, updateDto);
       expect(repository.save).toHaveBeenCalled();

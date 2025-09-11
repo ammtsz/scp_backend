@@ -13,6 +13,7 @@ import {
   InvalidAttendanceStatusTransitionException,
   AttendanceTimeSlotUnavailableException,
 } from '../common/exceptions';
+import { TreatmentSessionRecordService } from './treatment-session-record.service';
 
 @Injectable()
 export class AttendanceService {
@@ -21,6 +22,7 @@ export class AttendanceService {
     private attendanceRepository: Repository<Attendance>,
     @InjectRepository(ScheduleSetting)
     private scheduleSettingRepository: Repository<ScheduleSetting>,
+    private treatmentSessionRecordService: TreatmentSessionRecordService,
   ) {}
 
   async create(createAttendanceDto: CreateAttendanceDto): Promise<Attendance> {
@@ -74,7 +76,18 @@ export class AttendanceService {
     }
 
     this.attendanceRepository.merge(attendance, updateAttendanceDto);
-    return await this.attendanceRepository.save(attendance);
+    const updatedAttendance = await this.attendanceRepository.save(attendance);
+
+    // Check if this is a lightbath/rod attendance being completed
+    if (
+      updateAttendanceDto.status === AttendanceStatus.COMPLETED &&
+      attendance.status !== AttendanceStatus.COMPLETED &&
+      (attendance.type === 'light_bath' || attendance.type === 'rod')
+    ) {
+      await this.handleLightbathRodCompletion(updatedAttendance);
+    }
+
+    return updatedAttendance;
   }
 
   async remove(id: number): Promise<void> {
@@ -147,7 +160,7 @@ export class AttendanceService {
     const maxConcurrent =
       dto.type === 'spiritual'
         ? setting.max_concurrent_spiritual
-        : setting.max_concurrent_light_bath;
+        : setting.max_concurrent_lightbath_rod;
 
     if (concurrent >= maxConcurrent) {
       throw new AttendanceTimeSlotUnavailableException(
@@ -372,5 +385,38 @@ export class AttendanceService {
     });
 
     return stats;
+  }
+
+  /**
+   * Handle completion of lightbath/rod attendances by creating treatment session records
+   */
+  private async handleLightbathRodCompletion(attendance: Attendance): Promise<void> {
+    try {
+      // Look for existing treatment sessions for this patient and treatment type
+      const existingSession = await this.treatmentSessionRecordService.findActiveSessionForPatient(
+        attendance.patient_id,
+        attendance.type
+      );
+
+      if (existingSession) {
+        // Create a new session record for this completed attendance
+        await this.treatmentSessionRecordService.createRecordFromAttendance(
+          existingSession.id,
+          attendance
+        );
+      } else {
+        // Log that no active treatment session was found
+        console.warn(
+          `No active treatment session found for patient ${attendance.patient_id} ` +
+          `and type ${attendance.type}. Attendance ${attendance.id} completed but no session record created.`
+        );
+      }
+    } catch (error) {
+      // Log error but don't fail the attendance completion
+      console.error(
+        `Error creating treatment session record for attendance ${attendance.id}:`,
+        error
+      );
+    }
   }
 }

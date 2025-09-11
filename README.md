@@ -2,7 +2,54 @@
 
 ## Description
 
-The MVP Center Backend is a robust NestJS application designed to serve as the backend for a spiritual center management system. It provides a comprehensive API for managing patient records, scheduling appointments, and tracking treatments.
+The MVP Center Backend is a robust NestJS applica## API Endpoints
+
+| Method | Endpoint                                               | Description                   |
+| ------ | ------------------------------------------------------ | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/patients`                                            | Get all patients              |
+| POST   | `/patients`                                            | Create new patient            |
+| GET    | `/patients/:id`                                        | Get patient by ID             |
+| PUT    | `/patients/:id`                                        | Update patient                |
+| DELETE | `/patients/:id`                                        | Delete patient                |
+| GET    | `/attendances`                                         | Get all attendances           |
+| POST   | `/attendances`                                         | Create new attendance         |
+| GET    | `/attendances/:id`                                     | Get attendance by ID          |
+| PUT    | `/attendances/:id`                                     | Update attendance             |
+| DELETE | `/attendances/:id`                                     | Delete attendance             |
+| GET    | `/attendances/date/:date`                              | Get attendances by date       |
+| PUT    | `/attendances/:id/status`                              | Update attendance status      |
+| GET    | `/schedule-settings`                                   | Get schedule settings         |
+| POST   | `/schedule-settings`                                   | Create schedule setting       |
+| PUT    | `/schedule-settings/:id`                               | Update schedule setting       |
+| DELETE | `/schedule-settings/:id`                               | Delete schedule setting       |
+| GET    | `/schedule-settings/:dayOfWeek`                        | Get settings by day           |
+| GET    | `/treatment-records`                                   | Get all treatment records     |
+| POST   | `/treatment-records`                                   | Create new treatment record   |
+| GET    | `/treatment-records/:id`                               | Get treatment record by ID    |
+| PUT    | `/treatment-records/:id`                               | Update treatment record       |
+| DELETE | `/treatment-records/:id`                               | Delete treatment record       |
+| GET    | `/treatment-records/patient/:patientId`                | Get records by patient        |
+| GET    | `/treatment-sessions`                                  | Get all treatment sessions    |
+| POST   | `/treatment-sessions`                                  | Create new treatment session  |
+| GET    | `/treatment-sessions/:id`                              | Get treatment session by ID   |
+| PUT    | `/treatment-sessions/:id`                              | Update treatment session      |
+| DELETE | `/treatment-sessions/:id`                              | Delete treatment session      |
+| GET    | `/treatment-sessions/patient/:patientId`               | Get sessions by patient       |
+| PUT    | `/treatment-sessions/:id/complete`                     | Complete treatment session    |
+| PUT    | `/treatment-sessions/:id/activate`                     | Activate treatment session    |
+| PUT    | `/treatment-sessions/:id/suspend`                      | Suspend treatment session     |
+| GET    | `/treatment-session-records`                           | Get all session records       |
+| POST   | `/treatment-session-records`                           | Create new session record     |
+| GET    | `/treatment-session-records/:id`                       | Get session record by ID      |
+| PUT    | `/treatment-session-records/:id`                       | Update session record         |
+| DELETE | `/treatment-session-records/:id`                       | Delete session record         |
+| GET    | `/treatment-session-records/session/:sessionId`        | Get records by session        |
+| GET    | `/treatment-session-records/patient/:patientId`        | Get records by patient        |
+| PUT    | `/treatment-session-records/:id/complete`              | Complete session record       |
+| PUT    | `/treatment-session-records/:id/mark-missed`           | Mark session as missed        |
+| PUT    | `/treatment-session-records/:id/reschedule`            | Reschedule session record     |
+| GET    | `/treatment-session-records/analytics/completion-rate` | Get completion rate analytics |
+| GET    | `/treatment-session-records/analytics/missed-sessions` | Get missed sessions analytics | to serve as the backend for a spiritual center management system. It provides a comprehensive API for managing patient records, scheduling appointments, and tracking treatments. |
 
 ## Features
 

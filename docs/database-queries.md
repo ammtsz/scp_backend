@@ -16,7 +16,11 @@ This document contains common queries, examples, and best practices for the SCP 
    - [Daily Schedule](#daily-schedule)
    - [Follow-up Management](#follow-up-management)
    - [Attendance Flow](#attendance-flow)
-4. [Reports and Analytics](#reports-and-analytics)
+4. [Treatment Tracking](#treatment-tracking)
+   - [Treatment Sessions Management](#treatment-sessions-management)
+   - [Session Records Tracking](#session-records-tracking)
+   - [Treatment Analytics](#treatment-analytics)
+5. [Reports and Analytics](#reports-and-analytics)
    - [Dashboard Statistics](#dashboard-statistics)
    - [Treatment Effectiveness](#treatment-effectiveness)
    - [Resource Utilization](#resource-utilization)
@@ -257,6 +261,164 @@ WHERE a.status = 'completed'
 AND a.scheduled_date BETWEEN :start_date AND :end_date
 GROUP BY hour_block, a.type
 ORDER BY hour_block;
+```
+
+## Treatment Tracking
+
+### Treatment Sessions Management
+
+Get all active treatment sessions for a patient with progress tracking:
+
+```sql
+SELECT
+    ts.id,
+    ts.type,
+    ts.status,
+    ts.total_sessions_recommended,
+    ts.start_date,
+    ts.end_date,
+    COUNT(tsr.id) as sessions_completed,
+    COUNT(tsr.id) FILTER (WHERE tsr.status = 'completed') as successful_sessions,
+    COUNT(tsr.id) FILTER (WHERE tsr.status = 'missed') as missed_sessions,
+    ROUND(
+        (COUNT(tsr.id) FILTER (WHERE tsr.status = 'completed')::decimal /
+         NULLIF(ts.total_sessions_recommended, 0)) * 100, 2
+    ) as completion_percentage
+FROM scp_treatment_session ts
+LEFT JOIN scp_treatment_session_record tsr ON ts.id = tsr.treatment_session_id
+WHERE ts.patient_id = :patient_id
+AND ts.status = 'active'
+GROUP BY ts.id, ts.type, ts.status, ts.total_sessions_recommended, ts.start_date, ts.end_date
+ORDER BY ts.start_date DESC;
+```
+
+### Session Records Tracking
+
+Track individual session attendance and outcomes:
+
+```sql
+SELECT
+    tsr.id,
+    tsr.session_number,
+    tsr.scheduled_date,
+    tsr.scheduled_time,
+    tsr.status,
+    tsr.completion_date,
+    a.status as attendance_status,
+    ts.type as treatment_type,
+    p.name as patient_name
+FROM scp_treatment_session_record tsr
+JOIN scp_treatment_session ts ON tsr.treatment_session_id = ts.id
+JOIN scp_patient p ON ts.patient_id = p.id
+LEFT JOIN scp_attendance a ON tsr.attendance_id = a.id
+WHERE tsr.scheduled_date BETWEEN :start_date AND :end_date
+ORDER BY tsr.scheduled_date, tsr.scheduled_time;
+```
+
+### Treatment Analytics
+
+Get completion rates by treatment type:
+
+```sql
+SELECT
+    ts.type,
+    COUNT(DISTINCT ts.id) as total_sessions,
+    COUNT(DISTINCT tsr.id) as total_records,
+    COUNT(DISTINCT tsr.id) FILTER (WHERE tsr.status = 'completed') as completed_records,
+    COUNT(DISTINCT tsr.id) FILTER (WHERE tsr.status = 'missed') as missed_records,
+    ROUND(
+        (COUNT(DISTINCT tsr.id) FILTER (WHERE tsr.status = 'completed')::decimal /
+         NULLIF(COUNT(DISTINCT tsr.id), 0)) * 100, 2
+    ) as completion_rate,
+    ROUND(
+        (COUNT(DISTINCT tsr.id) FILTER (WHERE tsr.status = 'missed')::decimal /
+         NULLIF(COUNT(DISTINCT tsr.id), 0)) * 100, 2
+    ) as miss_rate
+FROM scp_treatment_session ts
+LEFT JOIN scp_treatment_session_record tsr ON ts.id = tsr.treatment_session_id
+WHERE ts.created_at >= :start_date
+GROUP BY ts.type
+ORDER BY completion_rate DESC;
+```
+
+### Patient Treatment History
+
+Get comprehensive treatment history for a patient:
+
+```sql
+SELECT
+    ts.id as session_id,
+    ts.type,
+    ts.status as session_status,
+    ts.start_date,
+    ts.end_date,
+    ts.total_sessions_recommended,
+    array_agg(
+        json_build_object(
+            'session_number', tsr.session_number,
+            'scheduled_date', tsr.scheduled_date,
+            'status', tsr.status,
+            'completion_date', tsr.completion_date
+        ) ORDER BY tsr.session_number
+    ) as session_records
+FROM scp_treatment_session ts
+LEFT JOIN scp_treatment_session_record tsr ON ts.id = tsr.treatment_session_id
+WHERE ts.patient_id = :patient_id
+GROUP BY ts.id, ts.type, ts.status, ts.start_date, ts.end_date, ts.total_sessions_recommended
+ORDER BY ts.start_date DESC;
+```
+
+### Upcoming Sessions by Date
+
+Get all scheduled sessions for a specific date:
+
+```sql
+SELECT
+    tsr.id,
+    tsr.session_number,
+    tsr.scheduled_time,
+    ts.type,
+    p.name as patient_name,
+    p.phone,
+    tsr.status,
+    a.status as attendance_status
+FROM scp_treatment_session_record tsr
+JOIN scp_treatment_session ts ON tsr.treatment_session_id = ts.id
+JOIN scp_patient p ON ts.patient_id = p.id
+LEFT JOIN scp_attendance a ON tsr.attendance_id = a.id
+WHERE tsr.scheduled_date = :date
+AND tsr.status IN ('scheduled', 'rescheduled')
+ORDER BY tsr.scheduled_time;
+```
+
+### Treatment Effectiveness Analysis
+
+Analyze treatment effectiveness by type and duration:
+
+```sql
+SELECT
+    ts.type,
+    COUNT(DISTINCT ts.patient_id) as unique_patients,
+    AVG(ts.total_sessions_recommended) as avg_recommended_sessions,
+    AVG(
+        COUNT(tsr.id) FILTER (WHERE tsr.status = 'completed')
+    ) as avg_completed_sessions,
+    AVG(
+        EXTRACT(days FROM (ts.end_date - ts.start_date))
+    ) as avg_treatment_duration_days,
+    ROUND(
+        AVG(
+            COUNT(tsr.id) FILTER (WHERE tsr.status = 'completed')::decimal /
+            NULLIF(ts.total_sessions_recommended, 0)
+        ) * 100, 2
+    ) as avg_completion_rate
+FROM scp_treatment_session ts
+LEFT JOIN scp_treatment_session_record tsr ON ts.id = tsr.treatment_session_id
+WHERE ts.status = 'completed'
+AND ts.created_at >= :start_date
+GROUP BY ts.type, ts.id
+GROUP BY ts.type
+ORDER BY avg_completion_rate DESC;
 ```
 
 ## Performance Tips and Best Practices

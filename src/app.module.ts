@@ -7,6 +7,8 @@ import { DatabaseModule } from './modules/database.module';
 import { PatientModule } from './modules/patient.module';
 import { AttendanceModule } from './modules/attendance.module';
 import { TreatmentRecordModule } from './modules/treatment-record.module';
+import { TreatmentSessionModule } from './modules/treatment-session.module';
+import { TreatmentSessionRecordModule } from './modules/treatment-session-record.module';
 import { ScheduleSettingModule } from './modules/schedule-setting.module';
 import { AppThrottlerGuard } from './common/guards/throttler.guard';
 
@@ -30,6 +32,8 @@ import { AppThrottlerGuard } from './common/guards/throttler.guard';
     PatientModule,
     AttendanceModule,
     TreatmentRecordModule,
+    TreatmentSessionModule,
+    TreatmentSessionRecordModule,
     ScheduleSettingModule,
   ],
   controllers: [AppController],

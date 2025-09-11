@@ -19,7 +19,7 @@ describe('ScheduleSettingService', () => {
     start_time: '09:00',
     end_time: '17:00',
     max_concurrent_spiritual: 2,
-    max_concurrent_light_bath: 3,
+    max_concurrent_lightbath_rod: 3,
     is_active: true,
     created_at: new Date(),
     updated_at: new Date(),
@@ -68,7 +68,7 @@ describe('ScheduleSettingService', () => {
         start_time: '09:00',
         end_time: '17:00',
         max_concurrent_spiritual: 2,
-        max_concurrent_light_bath: 3,
+        max_concurrent_lightbath_rod: 3,
         is_active: true,
       };
 
@@ -88,7 +88,7 @@ describe('ScheduleSettingService', () => {
         start_time: '09:00',
         end_time: '17:00',
         max_concurrent_spiritual: 2,
-        max_concurrent_light_bath: 3,
+        max_concurrent_lightbath_rod: 3,
         is_active: true,
       };
 

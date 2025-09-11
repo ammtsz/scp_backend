@@ -1,7 +1,8 @@
 -- PostgreSQL schema for SCP (Spiritual Center Project)
 -- This schema manages patient records, attendances, treatments, and scheduling
--- Version: 1.0
--- Last Updated: 2025-07-21
+-- Includes comprehensive treatment tracking system for lightbath and rod therapies
+-- Version: 2.0
+-- Last Updated: 2025-09-09
 
 -- Domain Types
 -- Priority levels for patient treatment
@@ -34,6 +35,28 @@ CREATE TYPE ATTENDANCE_STATUS AS ENUM (
     'completed',   -- Treatment is finished
     'cancelled',   -- Appointment was cancelled
     'missed'       -- Patient missed the appointment
+);
+
+-- Treatment session types for structured treatment tracking
+CREATE TYPE TREATMENT_SESSION_TYPE AS ENUM (
+    'light_bath',  -- Light therapy treatment sessions
+    'rod'          -- Rod therapy treatment sessions
+);
+
+-- Treatment session status tracking
+CREATE TYPE TREATMENT_SESSION_STATUS AS ENUM (
+    'scheduled',   -- Treatment series is scheduled
+    'in_progress', -- Treatment series is ongoing
+    'completed',   -- Treatment series is completed
+    'cancelled'    -- Treatment series was cancelled
+);
+
+-- Individual session record status tracking
+CREATE TYPE SESSION_RECORD_STATUS AS ENUM (
+    'scheduled',   -- Session is scheduled
+    'completed',   -- Session was completed
+    'missed',      -- Session was missed
+    'cancelled'    -- Session was cancelled
 );
 
 -- Core patient information
@@ -148,6 +171,75 @@ CREATE TRIGGER ensure_one_treatment_record_per_attendance
     FOR EACH ROW
     EXECUTE FUNCTION check_one_treatment_record_per_attendance();
 
+-- Treatment sessions table
+-- This table tracks planned treatment series (multiple sessions for lightbath/rod)
+CREATE TABLE scp_treatment_sessions ( id SERIAL PRIMARY KEY,
+
+-- Relationships to existing tables
+treatment_record_id INTEGER NOT NULL REFERENCES scp_treatment_record (id) ON DELETE CASCADE,
+attendance_id INTEGER NOT NULL REFERENCES scp_attendance (id) ON DELETE CASCADE,
+patient_id INTEGER NOT NULL REFERENCES scp_patient (id) ON DELETE CASCADE,
+
+-- Treatment details
+treatment_type TREATMENT_SESSION_TYPE NOT NULL,
+body_location VARCHAR(100) NOT NULL,
+start_date DATE NOT NULL,
+planned_sessions INTEGER NOT NULL CHECK (
+    planned_sessions > 0
+    AND planned_sessions <= 50
+),
+completed_sessions INTEGER DEFAULT 0 CHECK (completed_sessions >= 0),
+end_date DATE,
+status TREATMENT_SESSION_STATUS DEFAULT 'scheduled',
+
+-- Light bath specific fields (required when treatment_type = 'light_bath')
+duration_minutes INTEGER CHECK (
+    duration_minutes IS NULL
+    OR (
+        duration_minutes > 0
+        AND duration_minutes <= 70
+    )
+),
+color VARCHAR(20),
+
+-- General fields
+notes TEXT,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+-- Constraints to ensure light bath has required fields
+CONSTRAINT check_light_bath_requirements CHECK (
+        (treatment_type = 'light_bath' AND duration_minutes IS NOT NULL AND color IS NOT NULL) OR
+        (treatment_type = 'rod' AND duration_minutes IS NULL AND color IS NULL)
+    )
+);
+
+-- Treatment session records table
+-- This table tracks individual sessions within a treatment series
+CREATE TABLE scp_treatment_session_records (
+    id SERIAL PRIMARY KEY,
+
+-- Relationships
+treatment_session_id INTEGER NOT NULL REFERENCES scp_treatment_sessions (id) ON DELETE CASCADE,
+attendance_id INTEGER REFERENCES scp_attendance (id) ON DELETE SET NULL, -- Link to actual scheduled attendance
+
+-- Session details
+session_number INTEGER NOT NULL CHECK (session_number > 0),
+scheduled_date DATE NOT NULL,
+start_time TIMESTAMP,
+end_time TIMESTAMP,
+status SESSION_RECORD_STATUS DEFAULT 'scheduled',
+
+-- Additional tracking
+notes TEXT,
+missed_reason TEXT,
+performed_by VARCHAR(100),
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+-- Ensure unique session numbers within a treatment session
+UNIQUE(treatment_session_id, session_number) );
+
 -- Operational hours and capacity configuration
 CREATE TABLE scp_schedule_setting (
     id SERIAL PRIMARY KEY,
@@ -156,7 +248,7 @@ CREATE TABLE scp_schedule_setting (
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     max_concurrent_spiritual INTEGER DEFAULT 1,
-    max_concurrent_light_bath INTEGER DEFAULT 1,
+    max_concurrent_lightbath_rod INTEGER DEFAULT 1,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -192,6 +284,37 @@ CREATE TRIGGER update_scheduling_settings_modtime
     BEFORE UPDATE ON scp_schedule_setting
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_treatment_sessions_modtime
+    BEFORE UPDATE ON scp_treatment_sessions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_treatment_session_records_modtime
+    BEFORE UPDATE ON scp_treatment_session_records
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Indexes for better performance on new tables
+CREATE INDEX idx_treatment_sessions_treatment_record ON scp_treatment_sessions (treatment_record_id);
+
+CREATE INDEX idx_treatment_sessions_attendance ON scp_treatment_sessions (attendance_id);
+
+CREATE INDEX idx_treatment_sessions_patient ON scp_treatment_sessions (patient_id);
+
+CREATE INDEX idx_treatment_sessions_status ON scp_treatment_sessions (status);
+
+CREATE INDEX idx_treatment_sessions_start_date ON scp_treatment_sessions (start_date);
+
+CREATE INDEX idx_treatment_sessions_type ON scp_treatment_sessions (treatment_type);
+
+CREATE INDEX idx_treatment_session_records_session ON scp_treatment_session_records (treatment_session_id);
+
+CREATE INDEX idx_treatment_session_records_attendance ON scp_treatment_session_records (attendance_id);
+
+CREATE INDEX idx_treatment_session_records_scheduled_date ON scp_treatment_session_records (scheduled_date);
+
+CREATE INDEX idx_treatment_session_records_status ON scp_treatment_session_records (status);
 
 -- Initial scheduling settings
 INSERT INTO
@@ -382,5 +505,9 @@ COMMENT ON TABLE scp_attendance IS 'Tracks all patient visits and their status';
 COMMENT ON TABLE scp_treatment_record IS 'Detailed treatment information and recommendations';
 
 COMMENT ON TABLE scp_schedule_setting IS 'Operational hours and treatment capacity settings';
+
+COMMENT ON TABLE scp_treatment_sessions IS 'Tracks planned treatment series for lightbath and rod therapies';
+
+COMMENT ON TABLE scp_treatment_session_records IS 'Tracks individual session instances within treatment series';
 
 -- For detailed query documentation and examples, see /docs/database-queries.md

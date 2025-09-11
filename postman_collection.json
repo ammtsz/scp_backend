@@ -84,6 +84,111 @@
 					"response": []
 				},
 				{
+					"name": "Get Attendance Agenda",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/attendances/agenda?date=2025-07-22",
+							"host": ["{{baseUrl}}"],
+							"path": ["attendances", "agenda"],
+							"query": [
+								{
+									"key": "date",
+									"value": "2025-07-22",
+									"description": "Date for agenda (YYYY-MM-DD)"
+								}
+							]
+						},
+						"description": "Get attendance agenda for a specific date"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Next Available Date",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/attendances/next-date?patient_id=1&type=SPIRITUAL",
+							"host": ["{{baseUrl}}"],
+							"path": ["attendances", "next-date"],
+							"query": [
+								{
+									"key": "patient_id",
+									"value": "1",
+									"description": "Patient ID"
+								},
+								{
+									"key": "type",
+									"value": "SPIRITUAL",
+									"description": "Attendance type (SPIRITUAL, LIGHT_BATH, ROD)"
+								}
+							]
+						},
+						"description": "Get next available date for scheduling"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Attendance Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/attendances/stats?date=2025-07-22",
+							"host": ["{{baseUrl}}"],
+							"path": ["attendances", "stats"],
+							"query": [
+								{
+									"key": "date",
+									"value": "2025-07-22",
+									"description": "Date for statistics (YYYY-MM-DD)"
+								}
+							]
+						},
+						"description": "Get attendance statistics for a specific date"
+					},
+					"response": []
+				},
+				{
+					"name": "Bulk Update Attendances",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"updates\": [\n    {\n      \"id\": 1,\n      \"status\": \"COMPLETED\",\n      \"notes\": \"Session completed successfully\"\n    },\n    {\n      \"id\": 2,\n      \"status\": \"MISSED\",\n      \"is_justified\": false,\n      \"absence_notes\": \"Patient did not show up\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/attendances/bulk-update",
+							"host": ["{{baseUrl}}"],
+							"path": ["attendances", "bulk-update"]
+						},
+						"description": "Update multiple attendance records at once"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Attendances by Date",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/attendances/date/2025-07-22",
+							"host": ["{{baseUrl}}"],
+							"path": ["attendances", "date", "2025-07-22"]
+						},
+						"description": "Get all attendances for a specific date"
+					},
+					"response": []
+				},
+				{
 					"name": "Delete Attendance",
 					"request": {
 						"method": "DELETE",
@@ -395,6 +500,421 @@
 				}
 			],
 			"description": "Schedule Settings management endpoints"
+		},
+		{
+			"name": "Treatment Sessions",
+			"item": [
+				{
+					"name": "Create Treatment Session",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"patient_id\": 1,\n  \"type\": \"SPIRITUAL\",\n  \"total_sessions_recommended\": 12,\n  \"start_date\": \"2025-01-15\",\n  \"end_date\": \"2025-04-15\",\n  \"frequency\": \"weekly\",\n  \"notes\": \"Standard spiritual treatment series\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/treatment-sessions",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-sessions"]
+						},
+						"description": "Create a new treatment session series"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Treatment Sessions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/treatment-sessions",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-sessions"]
+						},
+						"description": "Get all treatment sessions"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Treatment Session by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/treatment-sessions/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-sessions", "1"]
+						},
+						"description": "Get a specific treatment session by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Sessions by Patient",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/treatment-sessions/patient/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-sessions", "patient", "1"]
+						},
+						"description": "Get all treatment sessions for a specific patient"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Treatment Session",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"total_sessions_recommended\": 15,\n  \"end_date\": \"2025-05-15\",\n  \"notes\": \"Extended treatment plan\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/treatment-sessions/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-sessions", "1"]
+						},
+						"description": "Update a treatment session"
+					},
+					"response": []
+				},
+				{
+					"name": "Complete Treatment Session",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"completion_notes\": \"Patient completed all recommended sessions successfully\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/treatment-sessions/1/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-sessions", "1", "complete"]
+						},
+						"description": "Mark treatment session as completed"
+					},
+					"response": []
+				},
+				{
+					"name": "Activate Treatment Session",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/treatment-sessions/1/activate",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-sessions", "1", "activate"]
+						},
+						"description": "Activate a treatment session"
+					},
+					"response": []
+				},
+				{
+					"name": "Suspend Treatment Session",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"suspension_reason\": \"Patient requested temporary pause\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/treatment-sessions/1/suspend",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-sessions", "1", "suspend"]
+						},
+						"description": "Suspend a treatment session"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Treatment Session",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/treatment-sessions/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-sessions", "1"]
+						},
+						"description": "Delete a treatment session"
+					},
+					"response": []
+				}
+			],
+			"description": "Treatment Sessions management endpoints"
+		},
+		{
+			"name": "Treatment Session Records",
+			"item": [
+				{
+					"name": "Create Session Record",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"treatment_session_id\": 1,\n  \"attendance_id\": 1,\n  \"session_number\": 1,\n  \"scheduled_date\": \"2025-01-15\",\n  \"scheduled_time\": \"14:30\",\n  \"notes\": \"First session of the series\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/treatment-session-records",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-session-records"]
+						},
+						"description": "Create a new session record"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Session Records",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/treatment-session-records",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-session-records"]
+						},
+						"description": "Get all session records"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Session Record by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/treatment-session-records/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-session-records", "1"]
+						},
+						"description": "Get a specific session record by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Records by Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/treatment-session-records/session/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-session-records", "session", "1"]
+						},
+						"description": "Get all records for a specific treatment session"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Records by Patient",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/treatment-session-records/patient/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-session-records", "patient", "1"]
+						},
+						"description": "Get all session records for a specific patient"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Session Record",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"scheduled_date\": \"2025-01-16\",\n  \"scheduled_time\": \"15:00\",\n  \"notes\": \"Rescheduled due to patient availability\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/treatment-session-records/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-session-records", "1"]
+						},
+						"description": "Update a session record"
+					},
+					"response": []
+				},
+				{
+					"name": "Complete Session Record",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"completion_notes\": \"Session completed successfully, patient showed improvement\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/treatment-session-records/1/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-session-records", "1", "complete"]
+						},
+						"description": "Mark session record as completed"
+					},
+					"response": []
+				},
+				{
+					"name": "Mark Session as Missed",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"missed_reason\": \"Patient did not show up\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/treatment-session-records/1/mark-missed",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-session-records", "1", "mark-missed"]
+						},
+						"description": "Mark session record as missed"
+					},
+					"response": []
+				},
+				{
+					"name": "Reschedule Session Record",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"new_date\": \"2025-01-20\",\n  \"new_time\": \"14:30\",\n  \"reschedule_reason\": \"Patient requested different time\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/treatment-session-records/1/reschedule",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-session-records", "1", "reschedule"]
+						},
+						"description": "Reschedule a session record"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Completion Rate Analytics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/treatment-session-records/analytics/completion-rate?patient_id=1&start_date=2025-01-01&end_date=2025-12-31",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-session-records", "analytics", "completion-rate"],
+							"query": [
+								{
+									"key": "patient_id",
+									"value": "1"
+								},
+								{
+									"key": "start_date",
+									"value": "2025-01-01"
+								},
+								{
+									"key": "end_date",
+									"value": "2025-12-31"
+								}
+							]
+						},
+						"description": "Get completion rate analytics"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Missed Sessions Analytics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/treatment-session-records/analytics/missed-sessions?patient_id=1&start_date=2025-01-01&end_date=2025-12-31",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-session-records", "analytics", "missed-sessions"],
+							"query": [
+								{
+									"key": "patient_id",
+									"value": "1"
+								},
+								{
+									"key": "start_date",
+									"value": "2025-01-01"
+								},
+								{
+									"key": "end_date",
+									"value": "2025-12-31"
+								}
+							]
+						},
+						"description": "Get missed sessions analytics"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Session Record",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/treatment-session-records/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["treatment-session-records", "1"]
+						},
+						"description": "Delete a session record"
+					},
+					"response": []
+				}
+			],
+			"description": "Treatment Session Records management endpoints"
 		}
 	],
 	"event": [

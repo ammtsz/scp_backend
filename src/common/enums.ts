@@ -25,3 +25,18 @@ export enum AttendanceStatus {
   CANCELLED = 'cancelled',
   MISSED = 'missed',
 }
+
+export enum TreatmentSessionStatus {
+  ACTIVE = 'active',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+  PAUSED = 'paused',
+}
+
+export enum SessionRecordStatus {
+  SCHEDULED = 'scheduled',
+  COMPLETED = 'completed',
+  MISSED = 'missed',
+  CANCELLED = 'cancelled',
+  RESCHEDULED = 'rescheduled',
+}

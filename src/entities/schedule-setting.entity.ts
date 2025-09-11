@@ -26,7 +26,7 @@ export class ScheduleSetting {
   max_concurrent_spiritual: number;
 
   @Column({ default: 1 })
-  max_concurrent_light_bath: number;
+  max_concurrent_lightbath_rod: number;
 
   @Column({ default: true })
   is_active: boolean;

@@ -4,9 +4,13 @@ import { TreatmentRecord } from '../entities/treatment-record.entity';
 import { Attendance } from '../entities/attendance.entity';
 import { TreatmentRecordController } from '../controllers/treatment-record.controller';
 import { TreatmentRecordService } from '../services/treatment-record.service';
+import { TreatmentSessionModule } from './treatment-session.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TreatmentRecord, Attendance])],
+  imports: [
+    TypeOrmModule.forFeature([TreatmentRecord, Attendance]),
+    TreatmentSessionModule,
+  ],
   controllers: [TreatmentRecordController],
   providers: [TreatmentRecordService],
   exports: [TreatmentRecordService],

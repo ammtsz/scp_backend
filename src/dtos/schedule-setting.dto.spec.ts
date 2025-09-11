@@ -13,7 +13,7 @@ describe('Schedule Setting DTOs', () => {
       dto.start_time = '09:00';
       dto.end_time = '17:00';
       dto.max_concurrent_spiritual = 2;
-      dto.max_concurrent_light_bath = 3;
+      dto.max_concurrent_lightbath_rod = 3;
       dto.is_active = true;
 
       const errors = await validate(dto);
@@ -37,7 +37,7 @@ describe('Schedule Setting DTOs', () => {
       dto.end_time = '17:00';
 
       expect(dto.max_concurrent_spiritual).toBe(1);
-      expect(dto.max_concurrent_light_bath).toBe(1);
+      expect(dto.max_concurrent_lightbath_rod).toBe(1);
       expect(dto.is_active).toBe(true);
     });
 
@@ -103,16 +103,16 @@ describe('Schedule Setting DTOs', () => {
       expect(errors[0].property).toBe('max_concurrent_spiritual');
     });
 
-    it('should fail validation with invalid max_concurrent_light_bath (zero)', async () => {
+    it('should fail validation with invalid max_concurrent_lightbath_rod (zero)', async () => {
       const dto = new CreateScheduleSettingDto();
       dto.day_of_week = 1;
       dto.start_time = '09:00';
       dto.end_time = '17:00';
-      dto.max_concurrent_light_bath = 0;
+      dto.max_concurrent_lightbath_rod = 0;
 
       const errors = await validate(dto);
       expect(errors).toHaveLength(1);
-      expect(errors[0].property).toBe('max_concurrent_light_bath');
+      expect(errors[0].property).toBe('max_concurrent_lightbath_rod');
     });
 
     it('should validate with valid time ranges', async () => {
@@ -172,7 +172,7 @@ describe('Schedule Setting DTOs', () => {
       dto.start_time = '09:00';
       dto.end_time = '17:00';
       dto.max_concurrent_spiritual = 2;
-      dto.max_concurrent_light_bath = 3;
+      dto.max_concurrent_lightbath_rod = 3;
       dto.is_active = true;
       dto.created_at = new Date();
       dto.updated_at = new Date();
@@ -182,7 +182,7 @@ describe('Schedule Setting DTOs', () => {
       expect(dto).toHaveProperty('start_time');
       expect(dto).toHaveProperty('end_time');
       expect(dto).toHaveProperty('max_concurrent_spiritual');
-      expect(dto).toHaveProperty('max_concurrent_light_bath');
+      expect(dto).toHaveProperty('max_concurrent_lightbath_rod');
       expect(dto).toHaveProperty('is_active');
       expect(dto).toHaveProperty('created_at');
       expect(dto).toHaveProperty('updated_at');
@@ -195,7 +195,7 @@ describe('Schedule Setting DTOs', () => {
       dto.start_time = '09:00';
       dto.end_time = '17:00';
       dto.max_concurrent_spiritual = 2;
-      dto.max_concurrent_light_bath = 3;
+      dto.max_concurrent_lightbath_rod = 3;
       dto.is_active = true;
       dto.created_at = new Date();
       dto.updated_at = new Date();
@@ -205,7 +205,7 @@ describe('Schedule Setting DTOs', () => {
       expect(dto.start_time).toBe('09:00');
       expect(dto.end_time).toBe('17:00');
       expect(dto.max_concurrent_spiritual).toBe(2);
-      expect(dto.max_concurrent_light_bath).toBe(3);
+      expect(dto.max_concurrent_lightbath_rod).toBe(3);
       expect(dto.is_active).toBe(true);
     });
   });

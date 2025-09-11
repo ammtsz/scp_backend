@@ -55,7 +55,7 @@ export class CreateScheduleSettingDto {
   max_concurrent_spiritual?: number = 1;
 
   @ApiPropertyOptional({
-    description: 'Maximum number of concurrent light bath treatments',
+    description: 'Maximum number of concurrent light bath and rod treatments (shared room/doctor)',
     minimum: 1,
     default: 1,
     example: 2,
@@ -63,7 +63,7 @@ export class CreateScheduleSettingDto {
   @IsNumber()
   @IsOptional()
   @Min(1)
-  max_concurrent_light_bath?: number = 1;
+  max_concurrent_lightbath_rod?: number = 1;
 
   @ApiPropertyOptional({
     description: 'Whether the schedule is active',
@@ -123,14 +123,14 @@ export class UpdateScheduleSettingDto {
   max_concurrent_spiritual?: number;
 
   @ApiPropertyOptional({
-    description: 'Maximum number of concurrent light bath treatments',
+    description: 'Maximum number of concurrent light bath and rod treatments (shared room/doctor)',
     minimum: 1,
     example: 2,
   })
   @IsNumber()
   @IsOptional()
   @Min(1)
-  max_concurrent_light_bath?: number;
+  max_concurrent_lightbath_rod?: number;
 
   @ApiPropertyOptional({
     description: 'Whether the schedule is active',
@@ -173,10 +173,10 @@ export class ScheduleSettingResponseDto {
   max_concurrent_spiritual: number;
 
   @ApiProperty({
-    description: 'Maximum number of concurrent light bath treatments',
+    description: 'Maximum number of concurrent light bath and rod treatments (shared room/doctor)',
     example: 2,
   })
-  max_concurrent_light_bath: number;
+  max_concurrent_lightbath_rod: number;
 
   @ApiProperty({
     description: 'Whether the schedule is active',

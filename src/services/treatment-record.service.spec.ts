@@ -1,5 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TreatmentRecordService } from './treatment-record.service';
+import { AttendanceService } from './attendance.service';
+import { TreatmentSessionService } from './treatment-session.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { TreatmentRecord } from '../entities/treatment-record.entity';
 import { Attendance } from '../entities/attendance.entity';
@@ -81,6 +83,14 @@ describe('TreatmentRecordService', () => {
       findOne: jest.fn().mockResolvedValue(mockAttendance),
     } as unknown as Repository<Attendance>;
 
+    const mockTreatmentSessionService = {
+      createTreatmentSession: jest.fn().mockResolvedValue({ id: 1 }),
+    } as unknown as TreatmentSessionService;
+
+    const mockAttendanceService = {
+      create: jest.fn().mockResolvedValue({ id: 1 }),
+    } as unknown as AttendanceService;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TreatmentRecordService,
@@ -91,6 +101,14 @@ describe('TreatmentRecordService', () => {
         {
           provide: getRepositoryToken(Attendance),
           useValue: attendanceRepoMock,
+        },
+        {
+          provide: TreatmentSessionService,
+          useValue: mockTreatmentSessionService,
+        },
+        {
+          provide: AttendanceService,
+          useValue: mockAttendanceService,
         },
       ],
     }).compile();

@@ -9,7 +9,9 @@ import { Repository } from 'typeorm';
 import { TreatmentRecord } from '../entities/treatment-record.entity';
 import { Attendance } from '../entities/attendance.entity';
 import { TreatmentSessionService } from './treatment-session.service';
+import { AttendanceService } from './attendance.service';
 import { TreatmentType } from '../entities/treatment-session.entity';
+import { AttendanceType } from '../common/enums';
 import {
   CreateTreatmentRecordDto,
   UpdateTreatmentRecordDto,
@@ -28,6 +30,7 @@ export class TreatmentRecordService {
     @InjectRepository(Attendance)
     private attendanceRepository: Repository<Attendance>,
     private treatmentSessionService: TreatmentSessionService,
+    private attendanceService: AttendanceService,
   ) {}
 
   async create(
@@ -240,7 +243,7 @@ export class TreatmentRecordService {
   }
 
   /**
-   * Create lightbath treatment session
+   * Create lightbath treatment session and corresponding attendances
    */
   private async createLightBathSession(
     treatmentRecord: TreatmentRecord,
@@ -273,11 +276,21 @@ export class TreatmentRecordService {
       notes: `Sessão criada automaticamente a partir do registro de tratamento #${treatmentRecord.id}`,
     };
 
-    await this.treatmentSessionService.createTreatmentSession(sessionDto);
+    // Create the treatment session
+    const createdSession = await this.treatmentSessionService.createTreatmentSession(sessionDto);
+
+    // Create individual attendances for each planned session
+    await this.createAttendancesForTreatmentSessions(
+      attendance.patient_id,
+      AttendanceType.LIGHT_BATH,
+      startDate,
+      defaultQuantity,
+      `${bodyLocation} - Banho de Luz ${defaultColor}`
+    );
   }
 
   /**
-   * Create rod treatment session
+   * Create rod treatment session and corresponding attendances
    */
   private async createRodSession(
     treatmentRecord: TreatmentRecord,
@@ -306,6 +319,73 @@ export class TreatmentRecordService {
       notes: `Sessão criada automaticamente a partir do registro de tratamento #${treatmentRecord.id}`,
     };
 
-    await this.treatmentSessionService.createTreatmentSession(sessionDto);
+    // Create the treatment session
+    const createdSession = await this.treatmentSessionService.createTreatmentSession(sessionDto);
+
+    // Create individual attendances for each planned session
+    await this.createAttendancesForTreatmentSessions(
+      attendance.patient_id,
+      AttendanceType.ROD,
+      startDate,
+      defaultQuantity,
+      `${bodyLocation} - Bastão`
+    );
+  }
+
+  /**
+   * Create individual attendances for treatment sessions (scheduled on Tuesdays)
+   */
+  private async createAttendancesForTreatmentSessions(
+    patientId: number,
+    attendanceType: AttendanceType,
+    startDate: Date,
+    sessionCount: number,
+    notes: string
+  ): Promise<void> {
+    try {
+      // Find the next Tuesday from start date
+      let currentDate = new Date(startDate);
+      currentDate = this.getNextTuesday(currentDate);
+
+      for (let i = 0; i < sessionCount; i++) {
+        const sessionNumber = i + 1;
+        
+        await this.attendanceService.create({
+          patient_id: patientId,
+          type: attendanceType,
+          scheduled_date: currentDate.toISOString().split('T')[0],
+          scheduled_time: '09:00', // Default morning time for treatments
+          notes: `${notes} - Sessão ${sessionNumber} de ${sessionCount}`,
+        });
+
+        // Move to next Tuesday (7 days later)
+        currentDate.setDate(currentDate.getDate() + 7);
+      }
+    } catch (error) {
+      console.error(
+        `Error creating attendances for treatment sessions:`,
+        error
+      );
+      // Don't throw error to avoid breaking the treatment record creation
+    }
+  }
+
+  /**
+   * Get the next Tuesday from the given date (or the same date if it's already Tuesday)
+   */
+  private getNextTuesday(date: Date): Date {
+    const result = new Date(date);
+    const dayOfWeek = result.getDay(); // 0 = Sunday, 1 = Monday, ..., 2 = Tuesday
+    
+    if (dayOfWeek === 2) {
+      // It's already Tuesday
+      return result;
+    }
+    
+    // Calculate days until next Tuesday
+    const daysUntilTuesday = dayOfWeek < 2 ? 2 - dayOfWeek : 9 - dayOfWeek;
+    result.setDate(result.getDate() + daysUntilTuesday);
+    
+    return result;
   }
 }

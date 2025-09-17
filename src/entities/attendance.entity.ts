@@ -11,6 +11,7 @@ import {
 import { AttendanceType, AttendanceStatus } from '../common/enums';
 import { Patient } from './patient.entity';
 import { TreatmentRecord } from './treatment-record.entity';
+import { TreatmentSessionRecord } from './treatment-session-record.entity';
 
 @Entity('scp_attendance')
 export class Attendance {
@@ -63,6 +64,13 @@ export class Attendance {
 
   @Column({ type: 'text', nullable: true })
   notes: string;
+
+  @Column({ nullable: true })
+  treatment_session_record_id: number;
+
+  @ManyToOne(() => TreatmentSessionRecord, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'treatment_session_record_id' })
+  treatmentSessionRecord: TreatmentSessionRecord;
 
   @CreateDateColumn()
   created_at: Date;

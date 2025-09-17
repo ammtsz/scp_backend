@@ -266,3 +266,46 @@ export class TreatmentRecordResponseDto {
   })
   updated_at: Date;
 }
+
+export class TreatmentSessionResult {
+  @ApiProperty({
+    description: 'Whether the treatment session was created successfully',
+    example: true,
+  })
+  success: boolean;
+
+  @ApiProperty({
+    description: 'List of errors encountered during session creation',
+    example: ['Failed to create attendance: Patient already has appointment at this time'],
+    type: [String],
+  })
+  errors: string[];
+}
+
+export class TreatmentSessionsResult {
+  @ApiPropertyOptional({
+    description: 'Result of light bath session creation',
+    type: TreatmentSessionResult,
+  })
+  lightBathResult?: TreatmentSessionResult;
+
+  @ApiPropertyOptional({
+    description: 'Result of rod session creation',
+    type: TreatmentSessionResult,
+  })
+  rodResult?: TreatmentSessionResult;
+}
+
+export class UpdateTreatmentRecordResponseDto {
+  @ApiProperty({
+    description: 'The updated treatment record',
+    type: TreatmentRecordResponseDto,
+  })
+  record: TreatmentRecordResponseDto;
+
+  @ApiPropertyOptional({
+    description: 'Results of any treatment sessions created during the update',
+    type: TreatmentSessionsResult,
+  })
+  treatmentSessions?: TreatmentSessionsResult;
+}

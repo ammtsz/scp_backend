@@ -6,6 +6,7 @@ import { TreatmentSessionRecord, SessionRecordStatus } from '../entities/treatme
 import { TreatmentRecord } from '../entities/treatment-record.entity';
 import { Attendance } from '../entities/attendance.entity';
 import { Patient } from '../entities/patient.entity';
+import { AttendanceType, AttendanceStatus } from '../common/enums';
 import { 
   CreateTreatmentSessionDto, 
   UpdateTreatmentSessionDto, 
@@ -187,21 +188,79 @@ export class TreatmentSessionService {
 
   private async createSessionRecordsForTreatment(sessionId: number, plannedSessions: number, startDate: Date): Promise<void> {
     const records = [];
-    const currentDate = new Date(startDate);
+    const attendances = [];
+    
+    // Parse the start date string to avoid timezone issues
+    let dateStr: string;
+    if (typeof startDate === 'string') {
+      dateStr = startDate;
+    } else {
+      dateStr = startDate.toISOString().split('T')[0];
+    }
+    
+    // Create a proper date object that preserves the local date
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const currentDate = new Date(year, month - 1, day); // month is 0-indexed
+
+    // Get session details for attendance creation
+    const session = await this.treatmentSessionRepository.findOne({
+      where: { id: sessionId },
+      relations: ['attendance']
+    });
+
+    if (!session) {
+      throw new NotFoundException(`Treatment session with ID ${sessionId} not found`);
+    }
 
     for (let i = 1; i <= plannedSessions; i++) {
-      records.push(this.treatmentSessionRecordRepository.create({
+      // Create a proper date for this session (avoid timezone issues)
+      const sessionDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+      
+      // Create treatment session record
+      const sessionRecord = this.treatmentSessionRecordRepository.create({
         treatment_session_id: sessionId,
         session_number: i,
-        scheduled_date: new Date(currentDate),
+        scheduled_date: sessionDate,
         status: SessionRecordStatus.SCHEDULED,
-      }));
+      });
+      records.push(sessionRecord);
 
-      // Add 7 days for weekly sessions (this could be configurable)
+      // Create corresponding attendance record for UI display
+      const attendanceType = this.mapTreatmentTypeToAttendanceType(session.treatment_type);
+      const attendance = this.attendanceRepository.create({
+        patient_id: session.patient_id,
+        type: attendanceType,
+        status: AttendanceStatus.SCHEDULED,
+        scheduled_date: sessionDate,
+        scheduled_time: '09:00:00', // Default time - could be configurable
+        notes: `Sessão ${i}/${plannedSessions} - ${session.treatment_type}${session.body_location ? ` - ${session.body_location}` : ''}`,
+        // Will link to session record after both are saved
+      });
+      attendances.push(attendance);
+
+      // Move to next week (add 7 days)
       currentDate.setDate(currentDate.getDate() + 7);
     }
 
-    await this.treatmentSessionRecordRepository.save(records);
+    // Save session records first
+    const savedRecords = await this.treatmentSessionRecordRepository.save(records);
+
+    // Link attendances to session records and save
+    for (let i = 0; i < attendances.length; i++) {
+      attendances[i].treatment_session_record_id = savedRecords[i].id;
+    }
+    await this.attendanceRepository.save(attendances);
+  }
+
+  private mapTreatmentTypeToAttendanceType(treatmentType: TreatmentType): AttendanceType {
+    switch (treatmentType) {
+      case TreatmentType.LIGHT_BATH:
+        return AttendanceType.LIGHT_BATH;
+      case TreatmentType.ROD:
+        return AttendanceType.ROD;
+      default:
+        throw new BadRequestException(`Unsupported treatment type: ${treatmentType}`);
+    }
   }
 
   private toResponseDto(session: TreatmentSession): TreatmentSessionResponseDto {

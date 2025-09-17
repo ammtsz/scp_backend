@@ -35,7 +35,13 @@ export class TreatmentRecordService {
 
   async create(
     createTreatmentRecordDto: CreateTreatmentRecordDto,
-  ): Promise<TreatmentRecord> {
+  ): Promise<{
+    record: TreatmentRecord;
+    treatmentSessions?: {
+      lightBathResult?: { success: boolean; errors: string[] };
+      rodResult?: { success: boolean; errors: string[] };
+    };
+  }> {
     try {
       // Validate return weeks
       if (
@@ -84,9 +90,15 @@ export class TreatmentRecordService {
       const savedRecord = await this.treatmentRecordRepository.save(record);
 
       // Auto-create treatment sessions for lightbath/rod recommendations
-      await this.createTreatmentSessionsFromRecord(savedRecord, attendance);
+      const treatmentResults = await this.createTreatmentSessionsFromRecord(savedRecord, attendance);
 
-      return savedRecord;
+      // Return both the record and any treatment session creation results
+      const result: any = { record: savedRecord };
+      if (Object.keys(treatmentResults).length > 0) {
+        result.treatmentSessions = treatmentResults;
+      }
+
+      return result;
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -132,43 +144,36 @@ export class TreatmentRecordService {
     return record;
   }
 
-  async update(
-    id: number,
-    updateTreatmentRecordDto: UpdateTreatmentRecordDto,
-  ): Promise<TreatmentRecord> {
-    const record = await this.findOne(id);
+  async update(id: number, updateData: UpdateTreatmentRecordDto): Promise<{
+    record: TreatmentRecord;
+    treatmentSessions?: {
+      lightBathResult?: { success: boolean; errors: string[] };
+      rodResult?: { success: boolean; errors: string[] };
+    };
+  }> {
+    // Get existing record to check current state
+    const existingRecord = await this.findOne(id);
+    const wasLightBathEnabled = existingRecord.light_bath;
+    const wasRodEnabled = existingRecord.rod;
 
-    if (Object.keys(updateTreatmentRecordDto).length === 0) {
-      throw new BadRequestException(
-        'At least one field must be provided for update',
-      );
-    }
+    // Update the treatment record
+    await this.treatmentRecordRepository.update(id, updateData);
+    const updatedRecord = await this.findOne(id);
 
-    if (
-      updateTreatmentRecordDto.return_in_weeks &&
-      (updateTreatmentRecordDto.return_in_weeks <= 0 ||
-        updateTreatmentRecordDto.return_in_weeks > 52)
-    ) {
-      throw new BadRequestException(
-        `Invalid return weeks value: ${updateTreatmentRecordDto.return_in_weeks}. Must be between 1 and 52 weeks`,
-      );
-    }
-
-    // Track what lightbath/rod treatments were enabled before update
-    const wasLightBathEnabled = record.light_bath;
-    const wasRodEnabled = record.rod;
-
-    this.treatmentRecordRepository.merge(record, updateTreatmentRecordDto);
-    const updatedRecord = await this.treatmentRecordRepository.save(record);
-
-    // Create treatment sessions for newly enabled treatments
-    await this.handleNewlyEnabledTreatments(
+    // Handle newly enabled treatments
+    const treatmentResults = await this.handleNewlyEnabledTreatments(
       updatedRecord,
       wasLightBathEnabled,
       wasRodEnabled
     );
 
-    return updatedRecord;
+    // Return both the record and any treatment session creation results
+    const result: any = { record: updatedRecord };
+    if (Object.keys(treatmentResults).length > 0) {
+      result.treatmentSessions = treatmentResults;
+    }
+
+    return result;
   }
 
   async remove(id: number): Promise<void> {
@@ -180,29 +185,15 @@ export class TreatmentRecordService {
 
   /**
    * Auto-create treatment sessions when lightbath or rod treatments are recommended
+   * NOTE: This is now handled by the frontend via the treatment-sessions API,
+   * so we disable automatic session creation to prevent duplicates and incorrect defaults.
    */
   private async createTreatmentSessionsFromRecord(
     treatmentRecord: TreatmentRecord,
     attendance: Attendance
-  ): Promise<void> {
-    try {
-      // Create lightbath treatment session if recommended
-      if (treatmentRecord.light_bath) {
-        await this.createLightBathSession(treatmentRecord, attendance);
-      }
-
-      // Create rod treatment session if recommended
-      if (treatmentRecord.rod) {
-        await this.createRodSession(treatmentRecord, attendance);
-      }
-    } catch (error) {
-      console.error(
-        `Error creating treatment sessions for record ${treatmentRecord.id}:`,
-        error
-      );
-      // Don't throw error to avoid breaking the treatment record creation
-      // Log the error and continue
-    }
+  ): Promise<{ lightBathResult?: { success: boolean; errors: string[] }; rodResult?: { success: boolean; errors: string[] } }> {
+    // Automatic session creation is disabled - frontend handles this via API
+    return {};
   }
 
   /**
@@ -212,7 +203,9 @@ export class TreatmentRecordService {
     updatedRecord: TreatmentRecord,
     wasLightBathEnabled: boolean,
     wasRodEnabled: boolean
-  ): Promise<void> {
+  ): Promise<{ lightBathResult?: { success: boolean; errors: string[] }; rodResult?: { success: boolean; errors: string[] } }> {
+    const results: any = {};
+
     try {
       // Get the attendance for session creation
       const attendance = await this.attendanceRepository.findOne({
@@ -221,24 +214,27 @@ export class TreatmentRecordService {
 
       if (!attendance) {
         console.error(`Attendance ${updatedRecord.attendance_id} not found for treatment record ${updatedRecord.id}`);
-        return;
+        return results;
       }
 
       // Create lightbath session if newly enabled
       if (updatedRecord.light_bath && !wasLightBathEnabled) {
-        await this.createLightBathSession(updatedRecord, attendance);
+        results.lightBathResult = await this.createLightBathSession(updatedRecord, attendance);
       }
 
       // Create rod session if newly enabled
       if (updatedRecord.rod && !wasRodEnabled) {
-        await this.createRodSession(updatedRecord, attendance);
+        results.rodResult = await this.createRodSession(updatedRecord, attendance);
       }
+
+      return results;
     } catch (error) {
       console.error(
         `Error creating treatment sessions for updated record ${updatedRecord.id}:`,
         error
       );
-      // Don't throw error to avoid breaking the treatment record update
+      // Return the partial results even if there was a general error
+      return results;
     }
   }
 
@@ -248,45 +244,61 @@ export class TreatmentRecordService {
   private async createLightBathSession(
     treatmentRecord: TreatmentRecord,
     attendance: Attendance
-  ): Promise<void> {
-    // Calculate start date (1 week from today for safety)
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() + 7);
+  ): Promise<{ success: boolean; errors: string[] }> {
+    const allErrors: string[] = [];
 
-    // Determine body location
-    const bodyLocation = treatmentRecord.location && treatmentRecord.location.length > 0 
-      ? treatmentRecord.location[0] 
-      : treatmentRecord.custom_location || 'Não especificado';
+    try {
+      // Calculate start date (1 week from today for safety)
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() + 7);
 
-    // Default values for lightbath
-    const defaultQuantity = treatmentRecord.quantity || 1;
-    const defaultColor = treatmentRecord.light_bath_color || 'azul';
-    const defaultDuration = 1; // 1 unit = 7 minutes
+      // Determine body location
+      const bodyLocation = treatmentRecord.location && treatmentRecord.location.length > 0 
+        ? treatmentRecord.location[0] 
+        : treatmentRecord.custom_location || 'Não especificado';
 
-    const sessionDto = {
-      treatment_record_id: treatmentRecord.id,
-      attendance_id: attendance.id,
-      patient_id: attendance.patient_id,
-      treatment_type: TreatmentType.LIGHT_BATH,
-      body_location: bodyLocation,
-      start_date: startDate.toISOString().split('T')[0],
-      planned_sessions: defaultQuantity,
-      duration_minutes: defaultDuration,
-      color: defaultColor,
-      notes: `Sessão criada automaticamente a partir do registro de tratamento #${treatmentRecord.id}`,
-    };
+      // Default values for lightbath
+      const defaultQuantity = treatmentRecord.quantity || 1;
+      const defaultColor = treatmentRecord.light_bath_color || 'azul';
+      const defaultDuration = 1; // 1 unit = 7 minutes
 
-    // Create the treatment session
-    const createdSession = await this.treatmentSessionService.createTreatmentSession(sessionDto);
+      const sessionDto = {
+        treatment_record_id: treatmentRecord.id,
+        attendance_id: attendance.id,
+        patient_id: attendance.patient_id,
+        treatment_type: TreatmentType.LIGHT_BATH,
+        body_location: bodyLocation,
+        start_date: startDate.toISOString().split('T')[0],
+        planned_sessions: defaultQuantity,
+        duration_minutes: defaultDuration,
+        color: defaultColor,
+        notes: `Sessão criada automaticamente a partir do registro de tratamento #${treatmentRecord.id}`,
+      };
 
-    // Create individual attendances for each planned session
-    await this.createAttendancesForTreatmentSessions(
-      attendance.patient_id,
-      AttendanceType.LIGHT_BATH,
-      startDate,
-      defaultQuantity,
-      `${bodyLocation} - Banho de Luz ${defaultColor}`
-    );
+      // Create the treatment session
+      const createdSession = await this.treatmentSessionService.createTreatmentSession(sessionDto);
+
+      // Create individual attendances for each planned session
+      const attendanceResult = await this.createAttendancesForTreatmentSessions(
+        attendance.patient_id,
+        AttendanceType.LIGHT_BATH,
+        startDate,
+        defaultQuantity,
+        `${bodyLocation} - Banho de Luz ${defaultColor}`
+      );
+
+      allErrors.push(...attendanceResult.errors);
+
+      return { 
+        success: attendanceResult.errors.length === 0, 
+        errors: allErrors 
+      };
+    } catch (error) {
+      const errorMessage = `Erro ao criar sessão de banho de luz: ${error.message || error}`;
+      allErrors.push(errorMessage);
+      console.error(errorMessage, error);
+      return { success: false, errors: allErrors };
+    }
   }
 
   /**
@@ -295,41 +307,57 @@ export class TreatmentRecordService {
   private async createRodSession(
     treatmentRecord: TreatmentRecord,
     attendance: Attendance
-  ): Promise<void> {
-    // Calculate start date (1 week from today for safety)
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() + 7);
+  ): Promise<{ success: boolean; errors: string[] }> {
+    const allErrors: string[] = [];
 
-    // Determine body location
-    const bodyLocation = treatmentRecord.location && treatmentRecord.location.length > 0 
-      ? treatmentRecord.location[0] 
-      : treatmentRecord.custom_location || 'Não especificado';
+    try {
+      // Calculate start date (1 week from today for safety)
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() + 7);
 
-    // Default values for rod
-    const defaultQuantity = treatmentRecord.quantity || 1;
+      // Determine body location
+      const bodyLocation = treatmentRecord.location && treatmentRecord.location.length > 0 
+        ? treatmentRecord.location[0] 
+        : treatmentRecord.custom_location || 'Não especificado';
 
-    const sessionDto = {
-      treatment_record_id: treatmentRecord.id,
-      attendance_id: attendance.id,
-      patient_id: attendance.patient_id,
-      treatment_type: TreatmentType.ROD,
-      body_location: bodyLocation,
-      start_date: startDate.toISOString().split('T')[0],
-      planned_sessions: defaultQuantity,
-      notes: `Sessão criada automaticamente a partir do registro de tratamento #${treatmentRecord.id}`,
-    };
+      // Default values for rod
+      const defaultQuantity = treatmentRecord.quantity || 1;
 
-    // Create the treatment session
-    const createdSession = await this.treatmentSessionService.createTreatmentSession(sessionDto);
+      const sessionDto = {
+        treatment_record_id: treatmentRecord.id,
+        attendance_id: attendance.id,
+        patient_id: attendance.patient_id,
+        treatment_type: TreatmentType.ROD,
+        body_location: bodyLocation,
+        start_date: startDate.toISOString().split('T')[0],
+        planned_sessions: defaultQuantity,
+        notes: `Sessão criada automaticamente a partir do registro de tratamento #${treatmentRecord.id}`,
+      };
 
-    // Create individual attendances for each planned session
-    await this.createAttendancesForTreatmentSessions(
-      attendance.patient_id,
-      AttendanceType.ROD,
-      startDate,
-      defaultQuantity,
-      `${bodyLocation} - Bastão`
-    );
+      // Create the treatment session
+      const createdSession = await this.treatmentSessionService.createTreatmentSession(sessionDto);
+
+      // Create individual attendances for each planned session
+      const attendanceResult = await this.createAttendancesForTreatmentSessions(
+        attendance.patient_id,
+        AttendanceType.ROD,
+        startDate,
+        defaultQuantity,
+        `${bodyLocation} - Bastão`
+      );
+
+      allErrors.push(...attendanceResult.errors);
+
+      return { 
+        success: attendanceResult.errors.length === 0, 
+        errors: allErrors 
+      };
+    } catch (error) {
+      const errorMessage = `Erro ao criar sessão com bastão: ${error.message || error}`;
+      allErrors.push(errorMessage);
+      console.error(errorMessage, error);
+      return { success: false, errors: allErrors };
+    }
   }
 
   /**
@@ -341,7 +369,10 @@ export class TreatmentRecordService {
     startDate: Date,
     sessionCount: number,
     notes: string
-  ): Promise<void> {
+  ): Promise<{ success: number; errors: string[] }> {
+    const errors: string[] = [];
+    let successCount = 0;
+
     try {
       // Find the next Tuesday from start date
       let currentDate = new Date(startDate);
@@ -350,24 +381,31 @@ export class TreatmentRecordService {
       for (let i = 0; i < sessionCount; i++) {
         const sessionNumber = i + 1;
         
-        await this.attendanceService.create({
-          patient_id: patientId,
-          type: attendanceType,
-          scheduled_date: currentDate.toISOString().split('T')[0],
-          scheduled_time: '09:00', // Default morning time for treatments
-          notes: `${notes} - Sessão ${sessionNumber} de ${sessionCount}`,
-        });
+        try {
+          await this.attendanceService.create({
+            patient_id: patientId,
+            type: attendanceType,
+            scheduled_date: currentDate.toISOString().split('T')[0],
+            scheduled_time: '21:00', // Default evening time for treatments (9 PM)
+            notes: `${notes} - Sessão ${sessionNumber} de ${sessionCount}`,
+          });
+          successCount++;
+        } catch (error) {
+          const errorMessage = `Erro ao criar agendamento ${sessionNumber}/${sessionCount} para ${currentDate.toDateString()}: ${error.message || error}`;
+          errors.push(errorMessage);
+          console.error(errorMessage, error);
+        }
 
         // Move to next Tuesday (7 days later)
         currentDate.setDate(currentDate.getDate() + 7);
       }
     } catch (error) {
-      console.error(
-        `Error creating attendances for treatment sessions:`,
-        error
-      );
-      // Don't throw error to avoid breaking the treatment record creation
+      const generalError = `Erro geral ao criar agendamentos: ${error.message || error}`;
+      errors.push(generalError);
+      console.error(generalError, error);
     }
+
+    return { success: successCount, errors };
   }
 
   /**
@@ -383,9 +421,16 @@ export class TreatmentRecordService {
     }
     
     // Calculate days until next Tuesday
-    const daysUntilTuesday = dayOfWeek < 2 ? 2 - dayOfWeek : 9 - dayOfWeek;
-    result.setDate(result.getDate() + daysUntilTuesday);
+    let daysToAdd;
+    if (dayOfWeek < 2) {
+      // Sunday (0) or Monday (1) -> add days to reach Tuesday
+      daysToAdd = 2 - dayOfWeek;
+    } else {
+      // Wednesday (3), Thursday (4), Friday (5), Saturday (6) -> add days to reach next Tuesday
+      daysToAdd = 7 - dayOfWeek + 2;
+    }
     
+    result.setDate(result.getDate() + daysToAdd);
     return result;
   }
 }

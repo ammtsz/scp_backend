@@ -15,6 +15,7 @@ import {
   CreateTreatmentRecordDto,
   UpdateTreatmentRecordDto,
   TreatmentRecordResponseDto,
+  UpdateTreatmentRecordResponseDto,
 } from '../dtos/treatment-record.dto';
 import {
   ApiCreateTreatmentRecordOperation,
@@ -36,7 +37,7 @@ export class TreatmentRecordController {
   @ApiCreateTreatmentRecordOperation()
   async create(
     @Body() createTreatmentRecordDto: CreateTreatmentRecordDto,
-  ): Promise<TreatmentRecordResponseDto> {
+  ): Promise<UpdateTreatmentRecordResponseDto> {
     return await this.treatmentRecordService.create(createTreatmentRecordDto);
   }
 
@@ -65,7 +66,7 @@ export class TreatmentRecordController {
   async update(
     @Param('id') id: string,
     @Body() updateTreatmentRecordDto: UpdateTreatmentRecordDto,
-  ): Promise<TreatmentRecordResponseDto> {
+  ): Promise<UpdateTreatmentRecordResponseDto> {
     return await this.treatmentRecordService.update(
       +id,
       updateTreatmentRecordDto,

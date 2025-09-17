@@ -46,9 +46,33 @@ export class TreatmentSessionController {
   @Post()
   @ApiCreateTreatmentSessionOperation()
   async createTreatmentSession(
-    @Body(ValidationPipe) dto: CreateTreatmentSessionDto,
+    @Body() rawBody: any,
   ): Promise<TreatmentSessionResponseDto> {
-    return this.treatmentSessionService.createTreatmentSession(dto);
+    console.log('🔍 Raw request body received:', JSON.stringify(rawBody, null, 2));
+    
+    // Manual validation to see the exact error
+    const validationPipe = new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    });
+    
+    try {
+      const dto = await validationPipe.transform(rawBody, {
+        type: 'body',
+        metatype: CreateTreatmentSessionDto,
+      });
+      console.log('✅ Validation passed, DTO:', dto);
+      return this.treatmentSessionService.createTreatmentSession(dto);
+    } catch (error) {
+      console.error('❌ Validation failed:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        response: error.response,
+        constraints: error.response?.message
+      });
+      throw error;
+    }
   }
 
   @Get('patient/:patientId')

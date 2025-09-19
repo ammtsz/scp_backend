@@ -98,37 +98,50 @@ export class UpdateAttendanceDto {
   scheduled_time?: string;
 
   @ApiPropertyOptional({
-    description: 'Updated check-in timestamp',
-    example: '2025-08-06T19:30:00Z',
+    description: 'Check-in time',
+    example: '19:30:00',
+    pattern: 'HH:mm:ss',
   })
-  @IsDateString()
+  @IsString()
   @IsOptional()
-  checked_in_at?: Date;
+  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/, {
+    message: 'Time must be in format HH:mm:ss',
+  })
+  checked_in_time?: string;
 
   @ApiPropertyOptional({
-    description: 'Updated start timestamp',
-    example: '2025-08-06T19:35:00Z',
+    description: 'Start time',
+    example: '19:35:00',
+    pattern: 'HH:mm:ss',
   })
-  @IsDateString()
+  @IsString()
   @IsOptional()
-  started_at?: Date;
+  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/, {
+    message: 'Time must be in format HH:mm:ss',
+  })
+  started_time?: string;
 
   @ApiPropertyOptional({
-    description: 'Updated completion timestamp',
-    example: '2025-08-06T20:00:00Z',
+    description: 'Completion time',
+    example: '20:00:00',
+    pattern: 'HH:mm:ss',
   })
-  @IsDateString()
+  @IsString()
   @IsOptional()
-  completed_at?: Date;
+  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/, {
+    message: 'Time must be in format HH:mm:ss',
+  })
+  completed_time?: string;
 
   @ApiPropertyOptional({
-    description: 'Updated cancellation timestamp',
-    example: null,
+    description: 'Cancellation date',
+    example: '2025-08-06',
+    format: 'YYYY-MM-DD',
     nullable: true,
   })
   @IsDateString()
   @IsOptional()
-  cancelled_at?: Date;
+  cancelled_date?: string;
 
   @ApiPropertyOptional({
     description: 'Whether the absence is justified',
@@ -192,29 +205,43 @@ export class AttendanceResponseDto {
   scheduled_time: string;
 
   @ApiPropertyOptional({
-    description: 'Check-in timestamp',
-    example: '2025-08-06T19:30:00Z',
+    description: 'Check-in time',
+    example: '19:30:00',
+    pattern: 'HH:mm:ss',
   })
-  checked_in_at?: Date;
+  @IsString()
+  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/, {
+    message: 'Time must be in format HH:mm:ss',
+  })
+  checked_in_time?: string;
 
   @ApiPropertyOptional({
-    description: 'Start timestamp',
-    example: '2025-08-06T19:35:00Z',
+    description: 'Start time',
+    example: '19:35:00',
+    pattern: 'HH:mm:ss',
   })
-  started_at?: Date;
+  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/, {
+    message: 'Time must be in format HH:mm:ss',
+  })
+  started_time?: string;
 
   @ApiPropertyOptional({
-    description: 'Completion timestamp',
-    example: '2025-08-06T20:00:00Z',
+    description: 'Completion time',
+    example: '20:00:00',
+    pattern: 'HH:mm:ss',
   })
-  completed_at?: Date;
+  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/, {
+    message: 'Time must be in format HH:mm:ss',
+  })
+  completed_time?: string;
 
   @ApiPropertyOptional({
-    description: 'Cancellation timestamp',
-    example: null,
+    description: 'Cancellation date',
+    example: '2025-08-06',
     nullable: true,
+    type: 'string',
   })
-  cancelled_at?: Date;
+  cancelled_date?: string;
 
   @ApiPropertyOptional({
     description: 'Whether the absence is justified',
@@ -234,15 +261,17 @@ export class AttendanceResponseDto {
 
   @ApiProperty({
     description: 'Creation timestamp',
-    example: '2025-08-06T19:30:00Z',
+    example: '2025-08-06T19:30:00',
+    type: 'string',
   })
-  created_at: Date;
+  created_at: string;
 
   @ApiProperty({
     description: 'Last update timestamp',
-    example: '2025-08-06T19:30:00Z',
+    example: '2025-08-06T19:30:00',
+    type: 'string',
   })
-  updated_at: Date;
+  updated_at: string;
 
   @ApiPropertyOptional({
     description: 'Patient information',

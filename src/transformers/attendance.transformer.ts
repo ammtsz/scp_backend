@@ -1,6 +1,7 @@
 import { Attendance } from '../entities/attendance.entity';
 import { AttendanceResponseDto, AttendanceAgendaDto, NextAttendanceDateDto } from '../dtos/attendance.dto';
 import { PatientResponseDto } from '../dtos/patient.dto';
+import { combineDateTimeToTimestamp } from '../utils/datetime-helpers';
 
 export class AttendanceTransformer {
   static toResponseDto(attendance: Attendance): AttendanceResponseDto {
@@ -9,19 +10,20 @@ export class AttendanceTransformer {
       patient_id: attendance.patient_id,
       type: attendance.type,
       status: attendance.status,
-      scheduled_date:
-        attendance.scheduled_date instanceof Date
-          ? attendance.scheduled_date.toISOString().split('T')[0]
-          : attendance.scheduled_date,
+      scheduled_date: attendance.scheduled_date, // Already stored as string in YYYY-MM-DD format
       scheduled_time: attendance.scheduled_time,
-      checked_in_at: attendance.checked_in_at,
-      started_at: attendance.started_at,
-      completed_at: attendance.completed_at,
-      cancelled_at: attendance.cancelled_at,
+      // Use only time fields (all status changes happen on the scheduled_date)
+      checked_in_time: attendance.checked_in_time,
+      started_time: attendance.started_time,
+      completed_time: attendance.completed_time,
+      // Only cancellation might happen on a different date
+      cancelled_date: attendance.cancelled_date,
       absence_justified: attendance.absence_justified,
+      absence_notes: attendance.absence_notes,
       notes: attendance.notes,
-      created_at: attendance.created_at,
-      updated_at: attendance.updated_at,
+      // Convert created/updated date/time pairs back to timestamp strings
+      created_at: combineDateTimeToTimestamp(attendance.created_date, attendance.created_time),
+      updated_at: combineDateTimeToTimestamp(attendance.updated_date, attendance.updated_time),
     };
 
     // Include patient data if available
@@ -37,8 +39,10 @@ export class AttendanceTransformer {
         start_date: attendance.patient.start_date,
         discharge_date: attendance.patient.discharge_date,
         missing_appointments_streak: attendance.patient.missing_appointments_streak,
-        created_at: attendance.patient.created_at,
-        updated_at: attendance.patient.updated_at,
+        created_date: attendance.patient.created_date,
+        created_time: attendance.patient.created_time,
+        updated_date: attendance.patient.updated_date,
+        updated_time: attendance.patient.updated_time,
       };
     }
 

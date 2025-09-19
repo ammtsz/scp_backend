@@ -14,6 +14,7 @@ import {
   AttendanceTimeSlotUnavailableException,
 } from '../common/exceptions';
 import { TreatmentSessionRecordService } from './treatment-session-record.service';
+import { getCurrentDateString, getCurrentTimeString } from '../utils/datetime-helpers';
 
 @Injectable()
 export class AttendanceService {
@@ -38,12 +39,9 @@ export class AttendanceService {
   }
 
   async findByDate(date: string): Promise<Attendance[]> {
-    // Convert YYYY-MM-DD string to Date object
-    const [year, month, day] = date.split('-').map(Number);
-    const targetDate = new Date(year, month - 1, day); // month is 0-indexed
-    
+    // Date is already in YYYY-MM-DD string format, use directly
     return await this.attendanceRepository.find({
-      where: { scheduled_date: targetDate },
+      where: { scheduled_date: date },
       relations: ['patient'],
       order: {
         scheduled_time: 'ASC',
@@ -75,7 +73,37 @@ export class AttendanceService {
       );
     }
 
-    this.attendanceRepository.merge(attendance, updateAttendanceDto);
+    // Always update the updated_date and updated_time
+    const updateData: any = { 
+      ...updateAttendanceDto,
+      updated_date: getCurrentDateString(),
+      updated_time: getCurrentTimeString()
+    };
+
+    // If status is being changed and corresponding time fields aren't provided,
+    // set them automatically (status changes happen on scheduled_date, so we only need time)
+    if (updateAttendanceDto.status && updateAttendanceDto.status !== attendance.status) {
+      const currentTime = getCurrentTimeString();
+
+      switch (updateAttendanceDto.status) {
+        case AttendanceStatus.CHECKED_IN:
+          if (!updateData.checked_in_time) updateData.checked_in_time = currentTime;
+          break;
+        case AttendanceStatus.IN_PROGRESS:
+          if (!updateData.started_time) updateData.started_time = currentTime;
+          break;
+        case AttendanceStatus.COMPLETED:
+          if (!updateData.completed_time) updateData.completed_time = currentTime;
+          break;
+        case AttendanceStatus.CANCELLED:
+          // Cancellation might happen on a different date
+          if (!updateData.cancelled_date) updateData.cancelled_date = getCurrentDateString();
+          break;
+        // For SCHEDULED status, we don't set any specific timestamp
+      }
+    }
+
+    this.attendanceRepository.merge(attendance, updateData);
     const updatedAttendance = await this.attendanceRepository.save(attendance);
 
     // Check if this is a lightbath/rod attendance being completed
@@ -116,7 +144,7 @@ export class AttendanceService {
   }
 
   private async validateScheduling(dto: CreateAttendanceDto): Promise<void> {
-    // Parse date string reliably to avoid timezone issues
+    // Parse date string to get day of week for validation
     const [year, month, day] = dto.scheduled_date.split('-').map(Number);
     const scheduledDate = new Date(year, month - 1, day); // month is 0-indexed
     const dayOfWeek = scheduledDate.getDay();
@@ -147,10 +175,10 @@ export class AttendanceService {
       );
     }
 
-    // Check concurrent appointments
+    // Check concurrent appointments using string date
     const concurrent = await this.attendanceRepository.count({
       where: {
-        scheduled_date: scheduledDate,
+        scheduled_date: dto.scheduled_date,
         scheduled_time: dto.scheduled_time,
         type: dto.type,
         status: AttendanceStatus.SCHEDULED,
@@ -269,15 +297,8 @@ export class AttendanceService {
         .getOne();
 
       if (nextAttendance && nextAttendance.scheduled_date) {
-        // Handle different date formats
-        let dateString: string;
-        if (nextAttendance.scheduled_date instanceof Date) {
-          dateString = nextAttendance.scheduled_date.toISOString().split('T')[0];
-        } else {
-          // If it's already a string, format it properly
-          dateString = new Date(nextAttendance.scheduled_date).toISOString().split('T')[0];
-        }
-        return dateString;
+        // scheduled_date is now always a string in YYYY-MM-DD format
+        return nextAttendance.scheduled_date;
       }
       
       return null;
@@ -290,27 +311,30 @@ export class AttendanceService {
   // Bulk update attendance statuses
   async bulkUpdateStatus(ids: number[], status: AttendanceStatus): Promise<number> {
     try {
-      const currentTime = new Date();
+      const currentDate = getCurrentDateString();
+      const currentTime = getCurrentTimeString();
       
-      // Prepare the update object with status and updated_at
+      // Prepare the update object with status and updated timestamp
       const updateData: any = { 
         status,
-        updated_at: currentTime,
+        updated_date: currentDate,
+        updated_time: currentTime,
       };
 
-      // Add timestamp field based on the status
+      // Add time fields based on the status (status changes happen on scheduled_date)
       switch (status) {
         case AttendanceStatus.CHECKED_IN:
-          updateData.checked_in_at = currentTime;
+          updateData.checked_in_time = currentTime;
           break;
         case AttendanceStatus.IN_PROGRESS:
-          updateData.started_at = currentTime;
+          updateData.started_time = currentTime;
           break;
         case AttendanceStatus.COMPLETED:
-          updateData.completed_at = currentTime;
+          updateData.completed_time = currentTime;
           break;
         case AttendanceStatus.CANCELLED:
-          updateData.cancelled_at = currentTime;
+          // Cancellation might happen on a different date
+          updateData.cancelled_date = currentDate;
           break;
         // For SCHEDULED status, we don't set any specific timestamp
       }
@@ -339,9 +363,9 @@ export class AttendanceService {
     cancelled: number;
     by_type: { spiritual: number; light_bath: number; rod: number };
   }> {
-    const targetDate = new Date(date);
+    // Use date string directly since scheduled_date is now a string
     const attendances = await this.attendanceRepository.find({
-      where: { scheduled_date: targetDate },
+      where: { scheduled_date: date },
     });
 
     const stats = {

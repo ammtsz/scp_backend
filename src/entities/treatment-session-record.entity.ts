@@ -2,8 +2,6 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
@@ -41,14 +39,14 @@ export class TreatmentSessionRecord {
   @Column({ type: 'integer' })
   session_number: number; // 1, 2, 3, etc.
 
-  @Column({ type: 'date' })
-  scheduled_date: Date;
+  @Column({ type: 'varchar', length: 10 })
+  scheduled_date: string; // Store as string in YYYY-MM-DD format (timezone-agnostic)
 
-  @Column({ type: 'timestamp', nullable: true })
-  start_time: Date;
+  @Column({ type: 'time', nullable: true })
+  start_time: string;
 
-  @Column({ type: 'timestamp', nullable: true })
-  end_time: Date;
+  @Column({ type: 'time', nullable: true })
+  end_time: string;
 
   @Column({
     type: 'enum',
@@ -66,9 +64,16 @@ export class TreatmentSessionRecord {
   @Column({ type: 'varchar', length: 100, nullable: true })
   performed_by: string; // Who performed the treatment
 
-  @CreateDateColumn()
-  created_at: Date;
+  // Timezone-agnostic created/updated date/time pairs
+  @Column({ type: 'date', default: () => 'CURRENT_DATE' })
+  created_date: string;
 
-  @UpdateDateColumn()
-  updated_at: Date;
+  @Column({ type: 'time', default: () => 'CURRENT_TIME' })
+  created_time: string;
+
+  @Column({ type: 'date', default: () => 'CURRENT_DATE' })
+  updated_date: string;
+
+  @Column({ type: 'time', default: () => 'CURRENT_TIME' })
+  updated_time: string;
 }

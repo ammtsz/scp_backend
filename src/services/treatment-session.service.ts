@@ -12,6 +12,11 @@ import {
   UpdateTreatmentSessionDto, 
   TreatmentSessionResponseDto 
 } from '../dtos/treatment-session.dto';
+import { 
+  formatDateToString, 
+  addDaysToDateString, 
+  getNextTuesdayString 
+} from '../utils/date-string-helpers';
 
 @Injectable()
 export class TreatmentSessionService {
@@ -56,16 +61,17 @@ export class TreatmentSessionService {
       }
     }
 
+    // Use timezone-agnostic string dates
     const treatmentSession = this.treatmentSessionRepository.create({
       treatment_record_id: dto.treatment_record_id,
       attendance_id: dto.attendance_id,
       patient_id: dto.patient_id,
       treatment_type: dto.treatment_type,
       body_location: dto.body_location,
-      start_date: new Date(dto.start_date),
+      start_date: dto.start_date,
       planned_sessions: dto.planned_sessions,
       completed_sessions: 0,
-      end_date: dto.end_date ? new Date(dto.end_date) : null,
+      end_date: dto.end_date || null,
       status: SessionStatus.SCHEDULED,
       duration_minutes: dto.duration_minutes,
       color: dto.color,
@@ -76,7 +82,7 @@ export class TreatmentSessionService {
 
     // Automatically create session records for planned sessions
     if (dto.planned_sessions > 0) {
-      await this.createSessionRecordsForTreatment(saved.id, dto.planned_sessions, new Date(dto.start_date));
+      await this.createSessionRecordsForTreatment(saved.id, dto.planned_sessions, dto.start_date);
     }
 
     return this.toResponseDto(saved);
@@ -86,7 +92,7 @@ export class TreatmentSessionService {
     const sessions = await this.treatmentSessionRepository.find({
       where: { patient_id: patientId },
       relations: ['sessionRecords', 'treatmentRecord', 'attendance'],
-      order: { created_at: 'DESC' },
+      order: { created_date: 'DESC', created_time: 'DESC' },
     });
 
     return sessions.map(session => this.toResponseDto(session));
@@ -95,9 +101,26 @@ export class TreatmentSessionService {
   async getTreatmentSessionsByTreatmentRecord(treatmentRecordId: number): Promise<TreatmentSessionResponseDto[]> {
     const sessions = await this.treatmentSessionRepository.find({
       where: { treatment_record_id: treatmentRecordId },
-      relations: ['sessionRecords'],
-      order: { created_at: 'ASC' },
+      relations: ['sessionRecords', 'treatmentRecord', 'attendance'],
+      order: { created_date: 'ASC', created_time: 'ASC' },
     });
+
+    return sessions.map(session => this.toResponseDto(session));
+  }
+
+  async getTreatmentSessionsByDate(date: string): Promise<TreatmentSessionResponseDto[]> {
+    // Use string date directly for timezone-agnostic comparison
+    const sessions = await this.treatmentSessionRepository
+      .createQueryBuilder('session')
+      .leftJoinAndSelect('session.sessionRecords', 'records')
+      .leftJoinAndSelect('session.treatmentRecord', 'treatmentRecord')
+      .leftJoinAndSelect('session.attendance', 'attendance')
+      .leftJoinAndSelect('attendance.patient', 'patient')
+      .where('session.start_date = :date', { date })
+      .orWhere('records.scheduled_date = :date', { date })
+      .orderBy('session.created_date', 'ASC')
+      .addOrderBy('session.created_time', 'ASC')
+      .getMany();
 
     return sessions.map(session => this.toResponseDto(session));
   }
@@ -123,14 +146,14 @@ export class TreatmentSessionService {
 
     // Update fields if provided
     if (dto.completed_sessions !== undefined) session.completed_sessions = dto.completed_sessions;
-    if (dto.end_date !== undefined) session.end_date = new Date(dto.end_date);
+    if (dto.end_date !== undefined) session.end_date = dto.end_date;
     if (dto.notes !== undefined) session.notes = dto.notes;
 
     // Auto-complete if all sessions are done
     if (session.completed_sessions >= session.planned_sessions) {
       session.status = SessionStatus.COMPLETED;
       if (!session.end_date) {
-        session.end_date = new Date();
+        session.end_date = formatDateToString(new Date());
       }
     }
 
@@ -148,7 +171,7 @@ export class TreatmentSessionService {
   async getAllTreatmentSessions(): Promise<TreatmentSessionResponseDto[]> {
     const sessions = await this.treatmentSessionRepository.find({
       relations: ['sessionRecords', 'treatmentRecord', 'attendance'],
-      order: { created_at: 'DESC' },
+      order: { created_date: 'DESC', created_time: 'DESC' },
     });
 
     return sessions.map(session => this.toResponseDto(session));
@@ -186,80 +209,54 @@ export class TreatmentSessionService {
   // PRIVATE HELPER METHODS
   // ========================
 
-  private async createSessionRecordsForTreatment(sessionId: number, plannedSessions: number, startDate: Date): Promise<void> {
-    const records = [];
-    const attendances = [];
-    
-    // Parse the start date string to avoid timezone issues
-    let dateStr: string;
-    if (typeof startDate === 'string') {
-      dateStr = startDate;
-    } else {
-      dateStr = startDate.toISOString().split('T')[0];
-    }
-    
-    // Create a proper date object that preserves the local date
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const currentDate = new Date(year, month - 1, day); // month is 0-indexed
-
-    // Get session details for attendance creation
-    const session = await this.treatmentSessionRepository.findOne({
-      where: { id: sessionId },
-      relations: ['attendance']
+  private async createSessionRecordsForTreatment(sessionId: number, plannedSessions: number, startDate: string): Promise<void> {
+    // Get the treatment session to access patient_id and treatment_type
+    const treatmentSession = await this.treatmentSessionRepository.findOne({
+      where: { id: sessionId }
     });
-
-    if (!session) {
+    
+    if (!treatmentSession) {
       throw new NotFoundException(`Treatment session with ID ${sessionId} not found`);
     }
+    
+    const records = [];
+    // Use timezone-agnostic string date approach
+    let currentDateStr = startDate;
 
     for (let i = 1; i <= plannedSessions; i++) {
-      // Create a proper date for this session (avoid timezone issues)
-      const sessionDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
-      
-      // Create treatment session record
-      const sessionRecord = this.treatmentSessionRecordRepository.create({
+      const record = this.treatmentSessionRecordRepository.create({
         treatment_session_id: sessionId,
         session_number: i,
-        scheduled_date: sessionDate,
+        scheduled_date: currentDateStr,
         status: SessionRecordStatus.SCHEDULED,
       });
-      records.push(sessionRecord);
+      
+      records.push(record);
 
-      // Create corresponding attendance record for UI display
-      const attendanceType = this.mapTreatmentTypeToAttendanceType(session.treatment_type);
-      const attendance = this.attendanceRepository.create({
-        patient_id: session.patient_id,
-        type: attendanceType,
-        status: AttendanceStatus.SCHEDULED,
-        scheduled_date: sessionDate,
-        scheduled_time: '09:00:00', // Default time - could be configurable
-        notes: `Sessão ${i}/${plannedSessions} - ${session.treatment_type}${session.body_location ? ` - ${session.body_location}` : ''}`,
-        // Will link to session record after both are saved
-      });
-      attendances.push(attendance);
-
-      // Move to next week (add 7 days)
-      currentDate.setDate(currentDate.getDate() + 7);
+      // Add 7 days for weekly sessions (this could be configurable)
+      currentDateStr = addDaysToDateString(currentDateStr, 7);
     }
 
-    // Save session records first
     const savedRecords = await this.treatmentSessionRecordRepository.save(records);
 
-    // Link attendances to session records and save
-    for (let i = 0; i < attendances.length; i++) {
-      attendances[i].treatment_session_record_id = savedRecords[i].id;
-    }
-    await this.attendanceRepository.save(attendances);
-  }
-
-  private mapTreatmentTypeToAttendanceType(treatmentType: TreatmentType): AttendanceType {
-    switch (treatmentType) {
-      case TreatmentType.LIGHT_BATH:
-        return AttendanceType.LIGHT_BATH;
-      case TreatmentType.ROD:
-        return AttendanceType.ROD;
-      default:
-        throw new BadRequestException(`Unsupported treatment type: ${treatmentType}`);
+    // Create attendances for each session record
+    const attendanceType = treatmentSession.treatment_type === TreatmentType.LIGHT_BATH ? AttendanceType.LIGHT_BATH : AttendanceType.ROD;
+    
+    for (const record of savedRecords) {
+      const attendance = this.attendanceRepository.create({
+        patient_id: treatmentSession.patient_id,
+        type: attendanceType,
+        scheduled_date: record.scheduled_date,
+        scheduled_time: '19:30', // Default time for treatment sessions
+        status: AttendanceStatus.SCHEDULED,
+        notes: `Treatment session ${record.session_number} of ${plannedSessions} - ${treatmentSession.body_location}`,
+      });
+      
+      const savedAttendance = await this.attendanceRepository.save(attendance);
+      
+      // Link the attendance to the session record
+      record.attendance_id = savedAttendance.id;
+      await this.treatmentSessionRecordRepository.save(record);
     }
   }
 
@@ -280,8 +277,10 @@ export class TreatmentSessionService {
       color: session.color,
       notes: session.notes,
       sessionRecords: session.sessionRecords,
-      created_at: session.created_at,
-      updated_at: session.updated_at,
+      created_date: session.created_date,
+      created_time: session.created_time,
+      updated_date: session.updated_date,
+      updated_time: session.updated_time,
     };
   }
 }

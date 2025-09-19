@@ -75,15 +75,17 @@ export class TreatmentSessionResponseDto {
   patient_id: number;
   treatment_type: TreatmentType;
   body_location: string;
-  start_date: Date;
+  start_date: string;
   planned_sessions: number;
   completed_sessions: number;
-  end_date?: Date;
+  end_date?: string;
   status: string;
   duration_minutes?: number;
   color?: string;
   notes?: string;
   sessionRecords?: any[];
-  created_at: Date;
-  updated_at: Date;
+  created_date: string;
+  created_time: string;
+  updated_date: string;
+  updated_time: string;
 }

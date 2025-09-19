@@ -2,8 +2,6 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
   ManyToOne,
   OneToMany,
   JoinColumn,
@@ -63,11 +61,11 @@ export class TreatmentSession {
   })
   treatment_type: TreatmentType;
 
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ name: 'body_locations', type: 'text' })
   body_location: string;
 
   @Column({ type: 'date' })
-  start_date: Date;
+  start_date: string;
 
   @Column({ type: 'integer' })
   planned_sessions: number;
@@ -76,7 +74,7 @@ export class TreatmentSession {
   completed_sessions: number;
 
   @Column({ type: 'date', nullable: true })
-  end_date: Date;
+  end_date: string;
 
   @Column({
     type: 'enum',
@@ -98,9 +96,16 @@ export class TreatmentSession {
   @OneToMany('TreatmentSessionRecord', 'treatmentSession')
   sessionRecords: any[];
 
-  @CreateDateColumn()
-  created_at: Date;
+  // Timezone-agnostic created/updated date/time pairs
+  @Column({ type: 'date', default: () => 'CURRENT_DATE' })
+  created_date: string;
 
-  @UpdateDateColumn()
-  updated_at: Date;
+  @Column({ type: 'time', default: () => 'CURRENT_TIME' })
+  created_time: string;
+
+  @Column({ type: 'date', default: () => 'CURRENT_DATE' })
+  updated_date: string;
+
+  @Column({ type: 'time', default: () => 'CURRENT_TIME' })
+  updated_time: string;
 }

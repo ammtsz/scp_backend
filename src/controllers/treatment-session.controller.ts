@@ -91,6 +91,14 @@ export class TreatmentSessionController {
     return this.treatmentSessionService.getTreatmentSessionsByTreatmentRecord(treatmentRecordId);
   }
 
+  @Get('date/:date')
+  @ApiTreatmentSessionOperation('Get treatment sessions by date')
+  async getTreatmentSessionsByDate(
+    @Param('date') date: string,
+  ): Promise<TreatmentSessionResponseDto[]> {
+    return this.treatmentSessionService.getTreatmentSessionsByDate(date);
+  }
+
   @Get(':id')
   @ApiTreatmentSessionOperation('Get a treatment session by ID')
   async getTreatmentSessionById(

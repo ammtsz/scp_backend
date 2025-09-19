@@ -37,7 +37,7 @@ export class TreatmentSessionRecordService {
     const sessionRecord = this.sessionRecordRepository.create({
       treatment_session_id: dto.treatment_session_id,
       session_number: dto.session_number,
-      scheduled_date: new Date(dto.scheduled_date),
+      scheduled_date: dto.scheduled_date, // Already a string in YYYY-MM-DD format
       status: SessionRecordStatus.SCHEDULED,
       notes: dto.notes,
       performed_by: dto.performed_by,
@@ -68,7 +68,7 @@ export class TreatmentSessionRecordService {
   async getAllSessionRecords(): Promise<TreatmentSessionRecordResponseDto[]> {
     const records = await this.sessionRecordRepository.find({
       relations: ['treatmentSession', 'attendance'],
-      order: { created_at: 'DESC' },
+      order: { created_date: 'DESC', created_time: 'DESC' },
     });
 
     return records.map(record => this.toResponseDto(record));
@@ -81,8 +81,8 @@ export class TreatmentSessionRecordService {
     }
 
     // Update fields if provided
-    if (dto.start_time !== undefined) record.start_time = new Date(dto.start_time);
-    if (dto.end_time !== undefined) record.end_time = new Date(dto.end_time);
+    if (dto.start_time !== undefined) record.start_time = dto.start_time;
+    if (dto.end_time !== undefined) record.end_time = dto.end_time;
     if (dto.status !== undefined) record.status = dto.status;
     if (dto.notes !== undefined) record.notes = dto.notes;
     if (dto.missed_reason !== undefined) record.missed_reason = dto.missed_reason;
@@ -124,7 +124,7 @@ export class TreatmentSessionRecordService {
     }
 
     record.status = SessionRecordStatus.COMPLETED;
-    record.end_time = new Date();
+    record.end_time = new Date().toTimeString().split(' ')[0]; // HH:MM:SS format
     if (notes) record.notes = notes;
 
     const updated = await this.sessionRecordRepository.save(record);
@@ -158,7 +158,7 @@ export class TreatmentSessionRecordService {
       throw new NotFoundException(`Session record with ID ${id} not found`);
     }
 
-    record.scheduled_date = new Date(newDate);
+    record.scheduled_date = newDate; // newDate should already be in YYYY-MM-DD format
     record.status = SessionRecordStatus.SCHEDULED;
     
     const updated = await this.sessionRecordRepository.save(record);
@@ -236,8 +236,8 @@ export class TreatmentSessionRecordService {
       attendance_id: attendance.id,
       session_number: nextSessionNumber,
       scheduled_date: attendance.scheduled_date,
-      start_time: attendance.started_at,
-      end_time: attendance.completed_at,
+      start_time: null, // Will be set separately if needed
+      end_time: null, // Will be set separately if needed
       status: SessionRecordStatus.COMPLETED,
       notes: `Sessão completada automaticamente via atendimento #${attendance.id}`,
       performed_by: 'Sistema', // Could be enhanced to track actual user
@@ -266,8 +266,10 @@ export class TreatmentSessionRecordService {
       notes: record.notes,
       missed_reason: record.missed_reason,
       performed_by: record.performed_by,
-      created_at: record.created_at,
-      updated_at: record.updated_at,
+      created_date: record.created_date,
+      created_time: record.created_time,
+      updated_date: record.updated_date,
+      updated_time: record.updated_time,
     };
   }
 }

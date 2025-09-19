@@ -62,13 +62,15 @@ export class TreatmentSessionRecordResponseDto {
   treatment_session_id: number;
   attendance_id?: number;
   session_number: number;
-  scheduled_date: Date;
-  start_time?: Date;
-  end_time?: Date;
+  scheduled_date: string; // YYYY-MM-DD format (timezone-agnostic)
+  start_time?: string;
+  end_time?: string;
   status: SessionRecordStatus;
   notes?: string;
   missed_reason?: string;
   performed_by?: string;
-  created_at: Date;
-  updated_at: Date;
+  created_date: string;
+  created_time: string;
+  updated_date: string;
+  updated_time: string;
 }

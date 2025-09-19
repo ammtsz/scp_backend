@@ -2,8 +2,6 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
   Check,
 } from 'typeorm';
 
@@ -31,9 +29,16 @@ export class ScheduleSetting {
   @Column({ default: true })
   is_active: boolean;
 
-  @CreateDateColumn()
-  created_at: Date;
+  // Timezone-agnostic created/updated date/time pairs
+  @Column({ type: 'date', default: () => 'CURRENT_DATE' })
+  created_date: string;
 
-  @UpdateDateColumn()
-  updated_at: Date;
+  @Column({ type: 'time', default: () => 'CURRENT_TIME' })
+  created_time: string;
+
+  @Column({ type: 'date', default: () => 'CURRENT_DATE' })
+  updated_date: string;
+
+  @Column({ type: 'time', default: () => 'CURRENT_TIME' })
+  updated_time: string;
 }

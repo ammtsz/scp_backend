@@ -185,14 +185,26 @@ export class ScheduleSettingResponseDto {
   is_active: boolean;
 
   @ApiProperty({
-    description: 'Record creation timestamp',
-    example: '2025-07-22T10:00:00Z',
+    description: 'Record creation date',
+    example: '2025-07-22',
   })
-  created_at: Date;
+  created_date: string;
 
   @ApiProperty({
-    description: 'Record last update timestamp',
-    example: '2025-07-22T10:00:00Z',
+    description: 'Record creation time',
+    example: '10:00:00',
   })
-  updated_at: Date;
+  created_time: string;
+
+  @ApiProperty({
+    description: 'Record last update date',
+    example: '2025-07-22',
+  })
+  updated_date: string;
+
+  @ApiProperty({
+    description: 'Record last update time',
+    example: '10:00:00',
+  })
+  updated_time: string;
 }

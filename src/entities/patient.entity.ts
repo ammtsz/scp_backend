@@ -2,8 +2,6 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
 } from 'typeorm';
 import { PatientPriority, TreatmentStatus } from '../common/enums';
 
@@ -33,23 +31,30 @@ export class Patient {
   treatment_status: TreatmentStatus;
 
   @Column({ type: 'date', nullable: true })
-  birth_date: Date;
+  birth_date: string;
 
   @Column({ type: 'text', nullable: true })
   main_complaint: string;
 
   @Column({ type: 'date', default: () => 'CURRENT_DATE' })
-  start_date: Date;
+  start_date: string;
 
   @Column({ type: 'date', nullable: true })
-  discharge_date: Date;
+  discharge_date: string;
 
   @Column({ type: 'integer', default: 0 })
   missing_appointments_streak: number;
 
-  @CreateDateColumn()
-  created_at: Date;
+  // Timezone-agnostic audit fields
+  @Column({ type: 'date', default: () => 'CURRENT_DATE' })
+  created_date: string;
 
-  @UpdateDateColumn()
-  updated_at: Date;
+  @Column({ type: 'time', default: () => 'CURRENT_TIME' })
+  created_time: string;
+
+  @Column({ type: 'date', default: () => 'CURRENT_DATE' })
+  updated_date: string;
+
+  @Column({ type: 'time', default: () => 'CURRENT_TIME' })
+  updated_time: string;
 }

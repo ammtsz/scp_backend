@@ -2,8 +2,6 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
   ManyToOne,
   OneToOne,
   JoinColumn,
@@ -11,7 +9,6 @@ import {
 import { AttendanceType, AttendanceStatus } from '../common/enums';
 import { Patient } from './patient.entity';
 import { TreatmentRecord } from './treatment-record.entity';
-import { TreatmentSessionRecord } from './treatment-session-record.entity';
 
 @Entity('scp_attendance')
 export class Attendance {
@@ -38,23 +35,37 @@ export class Attendance {
   })
   status: AttendanceStatus;
 
+  // Timezone-agnostic scheduled date/time
   @Column({ type: 'date' })
-  scheduled_date: Date;
+  scheduled_date: string; // Store as YYYY-MM-DD string
 
   @Column({ type: 'time' })
-  scheduled_time: string;
+  scheduled_time: string; // Store as HH:MM:SS string
 
-  @Column({ type: 'timestamp', nullable: true })
-  checked_in_at: Date;
+  // Timezone-agnostic event date/time pairs
+  @Column({ type: 'date', nullable: true })
+  checked_in_date: string;
 
-  @Column({ type: 'timestamp', nullable: true })
-  started_at: Date;
+  @Column({ type: 'time', nullable: true })
+  checked_in_time: string;
 
-  @Column({ type: 'timestamp', nullable: true })
-  completed_at: Date;
+  @Column({ type: 'date', nullable: true })
+  started_date: string;
 
-  @Column({ type: 'timestamp', nullable: true })
-  cancelled_at: Date;
+  @Column({ type: 'time', nullable: true })
+  started_time: string;
+
+  @Column({ type: 'date', nullable: true })
+  completed_date: string;
+
+  @Column({ type: 'time', nullable: true })
+  completed_time: string;
+
+  @Column({ type: 'date', nullable: true })
+  cancelled_date: string;
+
+  @Column({ type: 'time', nullable: true })
+  cancelled_time: string;
 
   @Column({ type: 'boolean', nullable: true })
   absence_justified: boolean;
@@ -65,18 +76,18 @@ export class Attendance {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
-  @Column({ nullable: true })
-  treatment_session_record_id: number;
+  // Timezone-agnostic created/updated date/time pairs
+  @Column({ type: 'date', default: () => 'CURRENT_DATE' })
+  created_date: string;
 
-  @ManyToOne(() => TreatmentSessionRecord, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'treatment_session_record_id' })
-  treatmentSessionRecord: TreatmentSessionRecord;
+  @Column({ type: 'time', default: () => 'CURRENT_TIME' })
+  created_time: string;
 
-  @CreateDateColumn()
-  created_at: Date;
+  @Column({ type: 'date', default: () => 'CURRENT_DATE' })
+  updated_date: string;
 
-  @UpdateDateColumn()
-  updated_at: Date;
+  @Column({ type: 'time', default: () => 'CURRENT_TIME' })
+  updated_time: string;
 
   @OneToOne(
     () => TreatmentRecord,

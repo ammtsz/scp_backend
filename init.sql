@@ -182,7 +182,7 @@ patient_id INTEGER NOT NULL REFERENCES scp_patient (id) ON DELETE CASCADE,
 
 -- Treatment details
 treatment_type TREATMENT_SESSION_TYPE NOT NULL,
-body_location VARCHAR(100) NOT NULL,
+body_locations TEXT, -- JSON array of body locations
 start_date DATE NOT NULL,
 planned_sessions INTEGER NOT NULL CHECK (
     planned_sessions > 0
@@ -225,7 +225,7 @@ attendance_id INTEGER REFERENCES scp_attendance (id) ON DELETE SET NULL, -- Link
 
 -- Session details
 session_number INTEGER NOT NULL CHECK (session_number > 0),
-scheduled_date DATE NOT NULL,
+scheduled_date VARCHAR(10) NOT NULL, -- Store as string in YYYY-MM-DD format (timezone-agnostic)
 start_time TIMESTAMP,
 end_time TIMESTAMP,
 status SESSION_RECORD_STATUS DEFAULT 'scheduled',

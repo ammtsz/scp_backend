@@ -2,11 +2,10 @@ import {
   IsString,
   IsEnum,
   IsOptional,
-  IsDate,
+  IsDateString,
   Matches,
   IsNotEmpty,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PatientPriority, TreatmentStatus } from '../common/enums';
 
@@ -55,10 +54,9 @@ export class CreatePatientDto {
     description: 'Patient birth date',
     example: '1990-01-01',
   })
-  @IsDate()
+  @IsDateString()
   @IsOptional()
-  @Type(() => Date)
-  birth_date?: Date;
+  birth_date?: string;
 
   @ApiPropertyOptional({
     description: 'Main health complaint',
@@ -113,10 +111,9 @@ export class UpdatePatientDto {
     description: 'Patient birth date',
     example: '1990-01-01',
   })
-  @IsDate()
+  @IsDateString()
   @IsOptional()
-  @Type(() => Date)
-  birth_date?: Date;
+  birth_date?: string;
 
   @ApiPropertyOptional({
     description: 'Main health complaint',
@@ -130,10 +127,9 @@ export class UpdatePatientDto {
     description: 'Patient discharge date',
     example: '2025-12-31',
   })
-  @IsDate()
+  @IsDateString()
   @IsOptional()
-  @Type(() => Date)
-  discharge_date?: Date;
+  discharge_date?: string;
 }
 
 export class PatientResponseDto {
@@ -173,7 +169,7 @@ export class PatientResponseDto {
     description: 'Patient birth date',
     example: '1990-01-01',
   })
-  birth_date?: Date;
+  birth_date?: string;
 
   @ApiPropertyOptional({
     description: 'Main health complaint',
@@ -185,13 +181,13 @@ export class PatientResponseDto {
     description: 'Patient discharge date',
     example: '2025-12-31',
   })
-  discharge_date?: Date;
+  discharge_date?: string;
 
   @ApiProperty({
     description: 'Treatment start date',
     example: '2025-07-22',
   })
-  start_date: Date;
+  start_date: string;
 
   @ApiProperty({
     description: 'Number of consecutive missing appointments',
@@ -201,13 +197,25 @@ export class PatientResponseDto {
 
   @ApiProperty({
     description: 'Record creation date',
-    example: '2025-07-22T10:00:00Z',
+    example: '2025-07-22',
   })
-  created_at: Date;
+  created_date: string;
+
+  @ApiProperty({
+    description: 'Record creation time',
+    example: '10:00:00',
+  })
+  created_time: string;
 
   @ApiProperty({
     description: 'Record last update date',
-    example: '2025-07-22T10:00:00Z',
+    example: '2025-07-22',
   })
-  updated_at: Date;
+  updated_date: string;
+
+  @ApiProperty({
+    description: 'Record last update time',
+    example: '10:00:00',
+  })
+  updated_time: string;
 }

@@ -2,15 +2,13 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
   OneToOne,
   JoinColumn,
   Check,
 } from 'typeorm';
 import { Attendance } from './attendance.entity';
 
-@Entity('scp_treatment_record')
+@Entity('scp_spiritual_treatment_record')
 @Check(`"return_in_weeks" > 0 AND "return_in_weeks" <= 52`)
 export class TreatmentRecord {
   @PrimaryGeneratedColumn()
@@ -62,15 +60,29 @@ export class TreatmentRecord {
   @Column({ default: 1 })
   quantity: number;
 
-  @Column({ type: 'timestamp', nullable: true })
-  treatment_start_time: Date;
+  // Treatment session times converted to separate date/time fields (timezone-agnostic)
+  @Column({ type: 'date', nullable: true })
+  treatment_start_date: string;
 
-  @Column({ type: 'timestamp', nullable: true })
-  treatment_end_time: Date;
+  @Column({ type: 'time', nullable: true })
+  treatment_start_time: string;
 
-  @CreateDateColumn()
-  created_at: Date;
+  @Column({ type: 'date', nullable: true })
+  treatment_end_date: string;
 
-  @UpdateDateColumn()
-  updated_at: Date;
+  @Column({ type: 'time', nullable: true })
+  treatment_end_time: string;
+
+  // Timezone-agnostic audit fields
+  @Column({ type: 'date', default: () => 'CURRENT_DATE' })
+  created_date: string;
+
+  @Column({ type: 'time', default: () => 'CURRENT_TIME' })
+  created_time: string;
+
+  @Column({ type: 'date', default: () => 'CURRENT_DATE' })
+  updated_date: string;
+
+  @Column({ type: 'time', default: () => 'CURRENT_TIME' })
+  updated_time: string;
 }

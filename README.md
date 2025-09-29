@@ -1,192 +1,104 @@
-# MVP Center Backend
+# Healthcare Management System – Backend
 
-## Description
+**Healthcare Management System** is a volunteer project supporting a local community in Brazil to manage attendances and treatments in a spiritual center. The goal is to improve organization and care for all participants.
 
-The MVP Center Backend is a robust NestJS applica## API Endpoints
+This backend (NestJS, TypeScript, PostgreSQL) provides the server-side foundation and API for the system. The [frontend project](https://github.com/ammtsz/scp_frontend) is developed in parallel, delivering the user interface and client-side logic.
 
-| Method | Endpoint                                               | Description                   |
-| ------ | ------------------------------------------------------ | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/patients`                                            | Get all patients              |
-| POST   | `/patients`                                            | Create new patient            |
-| GET    | `/patients/:id`                                        | Get patient by ID             |
-| PUT    | `/patients/:id`                                        | Update patient                |
-| DELETE | `/patients/:id`                                        | Delete patient                |
-| GET    | `/attendances`                                         | Get all attendances           |
-| POST   | `/attendances`                                         | Create new attendance         |
-| GET    | `/attendances/:id`                                     | Get attendance by ID          |
-| PUT    | `/attendances/:id`                                     | Update attendance             |
-| DELETE | `/attendances/:id`                                     | Delete attendance             |
-| GET    | `/attendances/date/:date`                              | Get attendances by date       |
-| PUT    | `/attendances/:id/status`                              | Update attendance status      |
-| GET    | `/schedule-settings`                                   | Get schedule settings         |
-| POST   | `/schedule-settings`                                   | Create schedule setting       |
-| PUT    | `/schedule-settings/:id`                               | Update schedule setting       |
-| DELETE | `/schedule-settings/:id`                               | Delete schedule setting       |
-| GET    | `/schedule-settings/:dayOfWeek`                        | Get settings by day           |
-| GET    | `/treatment-records`                                   | Get all treatment records     |
-| POST   | `/treatment-records`                                   | Create new treatment record   |
-| GET    | `/treatment-records/:id`                               | Get treatment record by ID    |
-| PUT    | `/treatment-records/:id`                               | Update treatment record       |
-| DELETE | `/treatment-records/:id`                               | Delete treatment record       |
-| GET    | `/treatment-records/patient/:patientId`                | Get records by patient        |
-| GET    | `/treatment-sessions`                                  | Get all treatment sessions    |
-| POST   | `/treatment-sessions`                                  | Create new treatment session  |
-| GET    | `/treatment-sessions/:id`                              | Get treatment session by ID   |
-| PUT    | `/treatment-sessions/:id`                              | Update treatment session      |
-| DELETE | `/treatment-sessions/:id`                              | Delete treatment session      |
-| GET    | `/treatment-sessions/patient/:patientId`               | Get sessions by patient       |
-| PUT    | `/treatment-sessions/:id/complete`                     | Complete treatment session    |
-| PUT    | `/treatment-sessions/:id/activate`                     | Activate treatment session    |
-| PUT    | `/treatment-sessions/:id/suspend`                      | Suspend treatment session     |
-| GET    | `/treatment-session-records`                           | Get all session records       |
-| POST   | `/treatment-session-records`                           | Create new session record     |
-| GET    | `/treatment-session-records/:id`                       | Get session record by ID      |
-| PUT    | `/treatment-session-records/:id`                       | Update session record         |
-| DELETE | `/treatment-session-records/:id`                       | Delete session record         |
-| GET    | `/treatment-session-records/session/:sessionId`        | Get records by session        |
-| GET    | `/treatment-session-records/patient/:patientId`        | Get records by patient        |
-| PUT    | `/treatment-session-records/:id/complete`              | Complete session record       |
-| PUT    | `/treatment-session-records/:id/mark-missed`           | Mark session as missed        |
-| PUT    | `/treatment-session-records/:id/reschedule`            | Reschedule session record     |
-| GET    | `/treatment-session-records/analytics/completion-rate` | Get completion rate analytics |
-| GET    | `/treatment-session-records/analytics/missed-sessions` | Get missed sessions analytics | to serve as the backend for a spiritual center management system. It provides a comprehensive API for managing patient records, scheduling appointments, and tracking treatments. |
+---
 
-## Features
+## 🚀 Project Story & AI Agent Experience
 
-- 🏥 Patient Management
-- 📅 Attendance Scheduling
-- ✅ Treatment Records
-- 📊 Schedule Settings
-- 🔒 Data Validation & Security
-- 🔄 TypeORM Integration
+The project began with a comprehensive requirements document, written from a project manager’s perspective, detailing business rules, page responsibilities, and data needs. This document was provided to GitHub Copilot, which analyzed the requirements and generated an initial implementation plan using NestJS, TypeScript, and PostgreSQL. This ensured the architecture and features were closely aligned with real-world needs and professional standards.
 
-## 🚀 Technologies
+This project is also a real-world experiment in leveraging AI coding agents (GitHub Copilot) to accelerate development and test the boundaries of prompt-driven engineering.
 
-- NestJS
-- TypeScript
-- PostgreSQL
-- TypeORM
-- Docker
-- Jest
+Development is a collaborative process between myself and GitHub Copilot: I bring experience with NestJS and TypeORM, while the agent helps rapidly scaffold endpoints, services, and relationships. I started by sharing my ideas for database tables and relationships, and now Copilot analyzes the [frontend project](https://github.com/ammtsz/scp_frontend) to generate backend code that fits those needs. For database connectivity, I use Docker and TypeORM, and Copilot assists with adding decorators and Swagger for API documentation.
 
-## 📋 Prerequisites
+Most backend development flows smoothly, though migrations remain a recurring challenge. Having both backend and [frontend](https://github.com/ammtsz/scp_frontend) in the same VS Code workspace makes it easy to update features quickly, since backend changes can be made in direct response to frontend needs.
 
-- Node.js (v18 or higher)
-- PostgreSQL
-- Docker and Docker Compose
-- npm or yarn
+Copilot has been instrumental in accelerating backend development. The experience highlights how valuable AI agents are for scaffolding and productivity, especially in projects that are verbose and require a lot of routine coding. However, as I learned from the frontend, things can get out of control easily without the right approach to using the agent, so ongoing review and refactoring has been essential.
 
-## 🔧 Installation
+---
 
-1. Clone the repository
+## � Technologies Used
 
-```bash
-git clone <repository-url>
-cd mvp-center-backend
-```
+- **Backend**: NestJS, TypeScript, PostgreSQL, TypeORM, Docker
+- **Testing**: Jest
 
-2. Install dependencies
+---
 
-```bash
-npm install
-```
+## ✨ Key Features
 
-3. Environment Setup
+- **Patient Management**: Create, update, and track patient records
+- **Attendance Scheduling**: Manage appointments and attendance workflows
+- **Treatment Records**: Track treatments and session history
+- **Schedule Settings**: Configure and manage scheduling rules
+- **Data Validation & Security**: Robust validation and secure endpoints
+- **TypeORM Integration**: Database ORM for models and migrations
 
-```bash
-# Copy the example environment file
-cp .env.example .env
-
-# Edit the .env file with your database credentials
-```
-
-4. Start the Database
-
-```bash
-docker-compose up -d
-```
-
-The database will be automatically initialized with the complete schema from `init.sql`.
-
-## 🏃‍♂️ Running the Application
-
-```bash
-# Development mode
-npm run start:dev
-
-# Production mode
-npm run build
-npm run start:prod
-```
-
-## 🧪 Testing
-
-```bash
-# Unit tests
-npm run test
-
-# e2e tests
-npm run test:e2e
-
-# Test coverage
-npm run test:cov
-```
-
-## 📚 API Documentation
-
-### Endpoints
-
-#### Attendances
-
-| Method | Endpoint           | Description           |
-| ------ | ------------------ | --------------------- |
-| POST   | `/attendances`     | Create new attendance |
-| GET    | `/attendances`     | List all attendances  |
-| GET    | `/attendances/:id` | Get attendance by ID  |
-| PATCH  | `/attendances/:id` | Update attendance     |
-| DELETE | `/attendances/:id` | Delete attendance     |
-
-##### Request/Response Examples
-
-###### Create Attendance
-
-```json
-// POST /attendances
-// Request
-{
-  "patient_id": 1,
-  "type": "FIRST_TIME",
-  "scheduled_date": "2025-07-22",
-  "scheduled_time": "14:30",
-  "notes": "First consultation"
-}
-
-// Response (201 Created)
-{
-  "id": 1,
-  "patient_id": 1,
-  "type": "FIRST_TIME",
-  "status": "SCHEDULED",
-  "scheduled_date": "2025-07-22",
-  "scheduled_time": "14:30",
-  "notes": "First consultation",
-  "created_at": "2025-07-22T14:30:00.000Z",
-  "updated_at": "2025-07-22T14:30:00.000Z"
-}
-```
+---
 
 ## 📁 Project Structure
 
-```
+```bash
 src/
-├── controllers/        # Route controllers (attendance.controller.ts, etc.)
-├── services/          # Business logic (attendance.service.ts, etc.)
-├── entities/          # TypeORM entities (attendance.entity.ts, etc.)
-├── dtos/             # Data Transfer Objects (attendance.dto.ts, etc.)
-├── transformers/     # Data transformers (attendance.transformer.ts, etc.)
-├── repositories/     # Custom repositories
-└── config/          # Configuration files
+├── app.controller.ts         # Main app controller
+├── app.module.ts             # Main app module
+├── app.service.ts            # Main app service
+├── main.ts                   # Entry point
+├── data-source.ts            # TypeORM data source config
+├── controllers/              # Route controllers
+├── services/                 # Business logic services
+├── entities/                 # TypeORM entities
+├── dtos/                     # Data Transfer Objects
+├── transformers/             # Data transformers
+├── decorators/               # Custom decorators
+├── modules/                  # Feature modules
+├── common/                   # Shared utilities and types
+├── config/                   # Configuration files
+├── utils/                    # Utility functions
+└── __tests__/                # Test files
 ```
+
+---
+
+## � How to Run the Project
+
+1. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+2. **Set up environment file**
+
+   ```bash
+   cp .env.example .env
+   # Edit the .env file with your database credentials
+   ```
+
+3. **Start the database**
+
+   ```bash
+   docker-compose up -d
+   ```
+
+   The database will be automatically initialized with the complete schema from `init.sql`.
+
+4. **Start the development server**
+
+   ```bash
+   npm run start:dev
+   ```
+
+5. **Production mode**
+
+   ```bash
+   npm run build
+   npm run start:prod
+   ```
+
+---
 
 ## 📊 Database Schema
 
@@ -198,6 +110,8 @@ The complete database schema is defined in `init.sql` and includes:
 - Proper relationships and constraints
 - Optimized indexes for performance
 
+---
+
 ## 🔄 Data Flow
 
 1. Client Request → Controller
@@ -207,25 +121,10 @@ The complete database schema is defined in `init.sql` and includes:
 5. Transformer formats response
 6. Controller returns response
 
-## 🔐 Environment Variables
+---
 
-```env
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-DATABASE_USER=postgres
-DATABASE_PASSWORD=yourpassword
-DATABASE_NAME=mvp_center
-PORT=3000
-NODE_ENV=development
-```
+## 📈 Current Status & Next Steps
 
-## 📝 Additional Notes
-
-- All dates are handled in ISO format (YYYY-MM-DD)
-- Times are stored in 24-hour format (HH:mm)
-- IDs are numeric and auto-incrementing
-- Responses are transformed using dedicated transformer classes
-
-## License
-
-[MIT licensed](LICENSE)
+- **Mostly functional**: Core features work, but some features need fixing
+- **Ongoing development**: Refactoring, bug fixes, and new features in progress
+- **Improved workflow**: Now balancing agent-driven coding with manual oversight for better code quality

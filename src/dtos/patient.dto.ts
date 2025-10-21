@@ -65,6 +65,15 @@ export class CreatePatientDto {
   @IsString()
   @IsOptional()
   main_complaint?: string;
+
+  @ApiPropertyOptional({
+    description: 'Patient timezone (IANA timezone format)',
+    example: 'America/Sao_Paulo',
+    default: 'America/Sao_Paulo',
+  })
+  @IsString()
+  @IsOptional()
+  timezone?: string = 'America/Sao_Paulo';
 }
 
 export class UpdatePatientDto {
@@ -130,6 +139,14 @@ export class UpdatePatientDto {
   @IsDateString()
   @IsOptional()
   discharge_date?: string;
+
+  @ApiPropertyOptional({
+    description: 'Patient timezone (IANA timezone format)',
+    example: 'America/Sao_Paulo',
+  })
+  @IsString()
+  @IsOptional()
+  timezone?: string;
 }
 
 export class PatientResponseDto {
@@ -194,6 +211,12 @@ export class PatientResponseDto {
     example: 0,
   })
   missing_appointments_streak: number;
+
+  @ApiProperty({
+    description: 'Patient timezone (IANA timezone format)',
+    example: 'America/Sao_Paulo',
+  })
+  timezone: string;
 
   @ApiProperty({
     description: 'Record creation date',

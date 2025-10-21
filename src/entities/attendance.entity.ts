@@ -76,6 +76,9 @@ export class Attendance {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
+  @Column({ nullable: true })
+  timezone_override?: string;
+
   // Timezone-agnostic created/updated date/time pairs
   @Column({ type: 'date', default: () => 'CURRENT_DATE' })
   created_date: string;

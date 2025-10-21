@@ -69,6 +69,7 @@ CREATE TABLE scp_patient (
     start_date DATE DEFAULT CURRENT_DATE,
     discharge_date DATE,
     missing_appointments_streak INTEGER DEFAULT 0,
+    timezone VARCHAR(50) DEFAULT 'America/Sao_Paulo',
 
 -- Timezone-agnostic audit fields
 created_date DATE DEFAULT CURRENT_DATE,
@@ -105,6 +106,7 @@ cancelled_time TIME,
 absence_justified BOOLEAN DEFAULT NULL,
 absence_notes TEXT,
 notes TEXT,
+timezone_override VARCHAR(50),
 
 -- Timezone-agnostic audit fields
 created_date DATE DEFAULT CURRENT_DATE,
@@ -209,6 +211,7 @@ performed_by VARCHAR(100),
 
 -- Timezone-agnostic audit fields
 
+
 created_date DATE DEFAULT CURRENT_DATE,
     created_time TIME DEFAULT CURRENT_TIME,
     updated_date DATE DEFAULT CURRENT_DATE,
@@ -228,6 +231,7 @@ CREATE TABLE scp_schedule_setting (
     is_active BOOLEAN DEFAULT true,
 
 -- Timezone-agnostic audit fields
+
 
 created_date DATE DEFAULT CURRENT_DATE,
     created_time TIME DEFAULT CURRENT_TIME,
@@ -331,11 +335,18 @@ CREATE INDEX idx_attendance_patient_id ON scp_attendance (patient_id);
 
 CREATE INDEX idx_attendance_status ON scp_attendance (status);
 
+CREATE INDEX idx_scp_patient_timezone ON scp_patient (timezone);
+
 CREATE INDEX idx_treatment_sessions_treatment_record ON scp_treatment_sessions (treatment_record_id);
 
 CREATE INDEX idx_treatment_sessions_patient ON scp_treatment_sessions (patient_id);
 
 CREATE INDEX idx_treatment_session_records_session ON scp_treatment_session_records (treatment_session_id);
+
+-- Column comments for timezone support
+COMMENT ON COLUMN scp_patient.timezone IS 'Patient timezone for scheduling and display purposes (IANA timezone format)';
+
+COMMENT ON COLUMN scp_attendance.timezone_override IS 'Optional timezone override for specific attendances (IANA timezone format)';
 
 -- Default schedule settings for Tuesday operations
 INSERT INTO

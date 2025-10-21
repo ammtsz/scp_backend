@@ -10,6 +10,7 @@ import { TreatmentRecordModule } from './modules/treatment-record.module';
 import { TreatmentSessionModule } from './modules/treatment-session.module';
 import { TreatmentSessionRecordModule } from './modules/treatment-session-record.module';
 import { ScheduleSettingModule } from './modules/schedule-setting.module';
+import { TimezoneController } from './controllers/timezone.controller';
 import { AppThrottlerGuard } from './common/guards/throttler.guard';
 
 @Module({
@@ -36,7 +37,7 @@ import { AppThrottlerGuard } from './common/guards/throttler.guard';
     TreatmentSessionRecordModule,
     ScheduleSettingModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, TimezoneController],
   providers: [AppService, AppThrottlerGuard],
 })
 export class AppModule {}

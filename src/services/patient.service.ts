@@ -5,6 +5,7 @@ import { Patient } from '../entities/patient.entity';
 import { Attendance } from '../entities/attendance.entity';
 import { CreatePatientDto, UpdatePatientDto } from '../dtos/patient.dto';
 import { AttendanceStatus, TreatmentStatus } from '../common/enums';
+import { isValidTimezone, DEFAULT_TIMEZONE } from '../common/utils/timezone.utils';
 import {
   ValidationException,
   DuplicatePatientException,
@@ -47,6 +48,17 @@ export class PatientService {
           allowedPriorities,
         );
       }
+    }
+
+    // Validate timezone if provided, otherwise use default
+    if (createPatientDto.timezone) {
+      if (!isValidTimezone(createPatientDto.timezone)) {
+        throw new ValidationException(
+          `Invalid timezone: ${createPatientDto.timezone}. Must be a valid IANA timezone identifier.`
+        );
+      }
+    } else {
+      createPatientDto.timezone = DEFAULT_TIMEZONE;
     }
 
     const patient = this.patientRepository.create(createPatientDto);
@@ -123,6 +135,13 @@ export class PatientService {
           allowedPriorities,
         );
       }
+    }
+
+    // Validate timezone if provided
+    if (updatePatientDto.timezone && !isValidTimezone(updatePatientDto.timezone)) {
+      throw new ValidationException(
+        `Invalid timezone: ${updatePatientDto.timezone}. Must be a valid IANA timezone identifier.`
+      );
     }
 
     this.patientRepository.merge(patient, updatePatientDto);

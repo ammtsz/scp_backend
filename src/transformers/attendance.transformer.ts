@@ -39,6 +39,7 @@ export class AttendanceTransformer {
         start_date: attendance.patient.start_date,
         discharge_date: attendance.patient.discharge_date,
         missing_appointments_streak: attendance.patient.missing_appointments_streak,
+        timezone: attendance.patient.timezone,
         created_date: attendance.patient.created_date,
         created_time: attendance.patient.created_time,
         updated_date: attendance.patient.updated_date,

@@ -45,6 +45,9 @@ export class Patient {
   @Column({ type: 'integer', default: 0 })
   missing_appointments_streak: number;
 
+  @Column({ default: 'America/Sao_Paulo' })
+  timezone: string;
+
   // Timezone-agnostic audit fields
   @Column({ type: 'date', default: () => 'CURRENT_DATE' })
   created_date: string;

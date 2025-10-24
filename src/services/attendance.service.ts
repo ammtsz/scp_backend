@@ -5,6 +5,7 @@ import { Attendance } from '../entities/attendance.entity';
 import {
   CreateAttendanceDto,
   UpdateAttendanceDto,
+  AttendanceResponseDto,
 } from '../dtos/attendance.dto';
 import { ScheduleSetting } from '../entities/schedule-setting.entity';
 import { AttendanceStatus } from '../common/enums';
@@ -58,6 +59,40 @@ export class AttendanceService {
       throw new ResourceNotFoundException('Attendance', id);
     }
     return attendance;
+  }
+
+  async findByPatientId(patientId: number): Promise<AttendanceResponseDto[]> {
+    const attendances = await this.attendanceRepository.find({
+      where: { patient_id: patientId },
+      relations: ['patient'],
+      order: {
+        scheduled_date: 'DESC',
+        scheduled_time: 'DESC',
+      },
+    });
+    
+    return attendances.map(attendance => this.transformToResponseDto(attendance));
+  }
+
+  private transformToResponseDto(attendance: Attendance): AttendanceResponseDto {
+    return {
+      id: attendance.id,
+      patient_id: attendance.patient_id,
+      type: attendance.type,
+      status: attendance.status,
+      scheduled_date: attendance.scheduled_date,
+      scheduled_time: attendance.scheduled_time,
+      checked_in_time: attendance.checked_in_time,
+      started_time: attendance.started_time,
+      completed_time: attendance.completed_time,
+      cancelled_date: attendance.cancelled_date,
+      absence_justified: attendance.absence_justified,
+      absence_notes: attendance.absence_notes,
+      notes: attendance.notes,
+      created_at: `${attendance.created_date}T${attendance.created_time}`,
+      updated_at: `${attendance.updated_date}T${attendance.updated_time}`,
+      patient: attendance.patient,
+    };
   }
 
   async update(

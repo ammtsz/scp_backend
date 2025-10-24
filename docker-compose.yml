@@ -11,7 +11,7 @@ services:
       - POSTGRES_DB=scp_database
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-timezone-agnostic.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     command: ["postgres", "-c", "log_statement=all"]
 
 volumes:

@@ -135,8 +135,8 @@ export class AttendanceTransformer {
 
 ### **Database Configuration**
 
-- ✅ `docker-compose.yml` - Updated to use `init-timezone-agnostic.sql`
-- ✅ `init-timezone-agnostic.sql` - New timezone-agnostic schema
+- ✅ `docker-compose.yml` - Updated to use `init.sql`
+- ✅ `init.sql` - New timezone-agnostic schema
 - ✅ `src/modules/database.module.ts` - Disabled TypeORM synchronization
 
 ### **Backend Entities**

@@ -54,8 +54,21 @@ export class AttendanceController {
 
   @Get()
   @ApiAttendanceOperation('Retrieve all attendance records')
-  async findAll(): Promise<AttendanceResponseDto[]> {
-    this.logger.log('Retrieving all attendances');
+  @ApiQuery({
+    name: 'patient_id',
+    required: false,
+    description: 'Filter by patient ID',
+    type: 'number',
+  })
+  async findAll(@Query('patient_id') patientId?: string): Promise<AttendanceResponseDto[]> {
+    this.logger.log('Retrieving attendances', { patientId });
+    
+    if (patientId) {
+      const attendances = await this.attendanceService.findByPatientId(+patientId);
+      this.logger.log(`Found ${attendances.length} attendances for patient ${patientId}`);
+      return attendances;
+    }
+    
     const attendances = await this.attendanceService.findAll();
     this.logger.log(`Found ${attendances.length} attendances`);
     return AttendanceTransformer.toResponseDtoList(attendances);

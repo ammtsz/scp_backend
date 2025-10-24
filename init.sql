@@ -1,18 +1,21 @@
--- PostgreSQL schema for SCP (Spiritual Center Project)
--- This schema manages patient records, attendances, treatments, and scheduling
--- Includes comprehensive treatment tracking system for lightbath and rod therapies
--- Version: 2.0
--- Last Updated: 2025-09-09
+-- Timezone-Agnostic Database Schema Migration
+-- This script converts all TIMESTAMP columns to separate DATE and TIME columns
+-- to eliminate timezone-related issues.
 
--- Domain Types
--- Priority levels for patient treatment
+-- Step 1: Create new init.sql with timezone-agnostic schema
+-- PostgreSQL schema for SCP (Spiritual Center Project) - Timezone Agnostic Version
+-- This schema manages patient records, attendances, treatments, and scheduling
+-- All dates stored as DATE type, all times as TIME type - no timezone dependencies
+-- Version: 3.0 (Timezone Agnostic)
+-- Last Updated: 2025-09-18
+
+-- Domain Types (unchanged)
 CREATE TYPE PATIENT_PRIORITY AS ENUM (
     '1', -- Emergency: Requires immediate attention
     '2', -- Intermediate: Priority but not urgent
     '3'  -- Normal: Standard priority level
 );
 
--- Treatment status in the system
 CREATE TYPE TREATMENT_STATUS AS ENUM (
     'N',  -- Novo paciente (New patient)
     'T',  -- Em tratamento (Under treatment)
@@ -20,14 +23,12 @@ CREATE TYPE TREATMENT_STATUS AS ENUM (
     'F'   -- Faltas consecutivas (Consecutive absences)
 );
 
--- Types of medical treatments available
 CREATE TYPE ATTENDANCE_TYPE AS ENUM (
     'spiritual',   -- Spiritual consultation
     'light_bath',  -- Light therapy treatment
     'rod'         -- Rod therapy treatment
 );
 
--- Status tracking for attendance flow
 CREATE TYPE ATTENDANCE_STATUS AS ENUM (
     'scheduled',   -- Appointment is scheduled
     'checked_in',  -- Patient has arrived
@@ -37,13 +38,11 @@ CREATE TYPE ATTENDANCE_STATUS AS ENUM (
     'missed'       -- Patient missed the appointment
 );
 
--- Treatment session types for structured treatment tracking
 CREATE TYPE TREATMENT_SESSION_TYPE AS ENUM (
     'light_bath',  -- Light therapy treatment sessions
     'rod'          -- Rod therapy treatment sessions
 );
 
--- Treatment session status tracking
 CREATE TYPE TREATMENT_SESSION_STATUS AS ENUM (
     'scheduled',   -- Treatment series is scheduled
     'in_progress', -- Treatment series is ongoing
@@ -51,7 +50,6 @@ CREATE TYPE TREATMENT_SESSION_STATUS AS ENUM (
     'cancelled'    -- Treatment series was cancelled
 );
 
--- Individual session record status tracking
 CREATE TYPE SESSION_RECORD_STATUS AS ENUM (
     'scheduled',   -- Session is scheduled
     'completed',   -- Session was completed
@@ -59,73 +57,257 @@ CREATE TYPE SESSION_RECORD_STATUS AS ENUM (
     'cancelled'    -- Session was cancelled
 );
 
--- Core patient information
+-- Core patient information (updated with timezone-agnostic timestamps)
 CREATE TABLE scp_patient (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     phone VARCHAR(20),
-    priority PATIENT_PRIORITY DEFAULT '3',      -- Default to normal priority
-    treatment_status TREATMENT_STATUS DEFAULT 'N',  -- Default to new patient
+    priority PATIENT_PRIORITY DEFAULT '3',
+    treatment_status TREATMENT_STATUS DEFAULT 'N',
     birth_date DATE,
     main_complaint TEXT,
-    start_date DATE DEFAULT CURRENT_DATE,       -- Treatment start date
-    discharge_date DATE,                        -- Treatment end date
-    missing_appointments_streak INTEGER DEFAULT 0, -- Track consecutive missing appointments
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    start_date DATE DEFAULT CURRENT_DATE,
+    discharge_date DATE,
+    missing_appointments_streak INTEGER DEFAULT 0,
+    timezone VARCHAR(50) DEFAULT 'America/Sao_Paulo',
 
--- Validate phone format
+-- Timezone-agnostic audit fields
+created_date DATE DEFAULT CURRENT_DATE,
+created_time TIME DEFAULT CURRENT_TIME,
+updated_date DATE DEFAULT CURRENT_DATE,
+updated_time TIME DEFAULT CURRENT_TIME,
+
+-- Validation constraints
 CONSTRAINT valid_phone CHECK (phone ~ '^\(\d{2}\)\s\d{4,5}-\d{4}$'),
-    -- Ensure birth_date is not in the future
     CONSTRAINT valid_birth_date CHECK (birth_date <= CURRENT_DATE)
 );
 
--- Medical attendance records
+-- Patient notes for storing detailed observations and treatment notes
+CREATE TABLE scp_patient_note (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL,
+    note_content TEXT NOT NULL,
+    category VARCHAR(50) DEFAULT 'general',
+
+-- Timezone-agnostic audit fields following the existing pattern
+created_date DATE DEFAULT CURRENT_DATE,
+created_time TIME DEFAULT CURRENT_TIME,
+updated_date DATE DEFAULT CURRENT_DATE,
+updated_time TIME DEFAULT CURRENT_TIME,
+
+-- Foreign key constraint
+CONSTRAINT fk_patient_note_patient 
+        FOREIGN KEY (patient_id) 
+        REFERENCES scp_patient(id) 
+        ON DELETE CASCADE
+);
+
+-- Medical attendance records (updated with timezone-agnostic timestamps)
 CREATE TABLE scp_attendance (
     id SERIAL PRIMARY KEY,
     patient_id INTEGER REFERENCES scp_patient (id) ON DELETE CASCADE,
     type ATTENDANCE_TYPE NOT NULL,
     status ATTENDANCE_STATUS DEFAULT 'scheduled',
-    scheduled_date DATE NOT NULL,
-    scheduled_time TIME NOT NULL,
-    checked_in_at TIMESTAMP,
-    started_at TIMESTAMP,
-    completed_at TIMESTAMP,
-    cancelled_at TIMESTAMP,
-    absence_justified BOOLEAN DEFAULT NULL, -- NULL = not absence, TRUE = justified, FALSE = unjustified
-    absence_notes TEXT,
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+-- Scheduled date/time (already timezone-agnostic)
+scheduled_date DATE NOT NULL, scheduled_time TIME NOT NULL,
+
+-- Event timestamps converted to separate date/time fields
+checked_in_date DATE,
+checked_in_time TIME,
+started_date DATE,
+started_time TIME,
+completed_date DATE,
+completed_time TIME,
+cancelled_date DATE,
+cancelled_time TIME,
+
+-- Other fields
+absence_justified BOOLEAN DEFAULT NULL,
+absence_notes TEXT,
+notes TEXT,
+timezone_override VARCHAR(50),
+
+-- Timezone-agnostic audit fields
+created_date DATE DEFAULT CURRENT_DATE,
+    created_time TIME DEFAULT CURRENT_TIME,
+    updated_date DATE DEFAULT CURRENT_DATE,
+    updated_time TIME DEFAULT CURRENT_TIME
 );
 
--- Detailed treatment records and recommendations
-CREATE TABLE scp_treatment_record (
+-- Spiritual treatment records (updated with timezone-agnostic timestamps)
+CREATE TABLE scp_spiritual_treatment_record (
     id SERIAL PRIMARY KEY,
     attendance_id INTEGER REFERENCES scp_attendance (id) ON DELETE CASCADE UNIQUE,
     food TEXT,
     water TEXT,
     ointments TEXT,
     light_bath BOOLEAN DEFAULT false,
-    light_bath_color VARCHAR(20), -- Color for light bath treatment (e.g., 'azul', 'verde', 'amarelo', 'vermelho', 'violeta', 'branco')
+    light_bath_color VARCHAR(20),
     rod BOOLEAN DEFAULT false,
     spiritual_treatment BOOLEAN DEFAULT false,
-    return_in_weeks INTEGER CHECK (
-        return_in_weeks > 0
-        AND return_in_weeks <= 52
-    ),
+    return_in_weeks INTEGER CHECK (return_in_weeks > 0 AND return_in_weeks <= 52),
     notes TEXT,
-    -- Phase 2: Enhanced Treatment Records + Location Management
-    location TEXT [] DEFAULT '{}', -- Array of treatment locations
-    custom_location TEXT, -- Custom location if not in predefined list
-    quantity INTEGER DEFAULT 1, -- Quantity of treatment applications
-    treatment_start_time TIMESTAMP, -- When treatment session started
-    treatment_end_time TIMESTAMP, -- When treatment session ended
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+-- Location and quantity fields
+location TEXT [] DEFAULT '{}',
+custom_location TEXT,
+quantity INTEGER DEFAULT 1,
+
+-- Treatment session times converted to separate date/time fields
+treatment_start_date DATE,
+treatment_start_time TIME,
+treatment_end_date DATE,
+treatment_end_time TIME,
+
+-- Timezone-agnostic audit fields
+created_date DATE DEFAULT CURRENT_DATE,
+    created_time TIME DEFAULT CURRENT_TIME,
+    updated_date DATE DEFAULT CURRENT_DATE,
+    updated_time TIME DEFAULT CURRENT_TIME
 );
 
--- Function to ensure one treatment record per attendance
+-- Treatment sessions table (updated with timezone-agnostic timestamps)
+
+
+CREATE TABLE scp_treatment_sessions (
+    id SERIAL PRIMARY KEY,
+    treatment_record_id INTEGER NOT NULL REFERENCES scp_spiritual_treatment_record (id) ON DELETE CASCADE,
+    attendance_id INTEGER NOT NULL REFERENCES scp_attendance (id) ON DELETE CASCADE,
+    patient_id INTEGER NOT NULL REFERENCES scp_patient (id) ON DELETE CASCADE,
+    
+    treatment_type TREATMENT_SESSION_TYPE NOT NULL,
+    body_locations TEXT,
+    start_date DATE NOT NULL,
+    planned_sessions INTEGER NOT NULL CHECK (planned_sessions > 0 AND planned_sessions <= 50),
+    completed_sessions INTEGER DEFAULT 0 CHECK (completed_sessions >= 0),
+    end_date DATE,
+    status TREATMENT_SESSION_STATUS DEFAULT 'scheduled',
+
+-- Light bath specific fields
+duration_minutes INTEGER CHECK (
+    duration_minutes IS NULL
+    OR (
+        duration_minutes > 0
+        AND duration_minutes <= 70
+    )
+),
+color VARCHAR(20),
+notes TEXT,
+
+-- Timezone-agnostic audit fields
+created_date DATE DEFAULT CURRENT_DATE,
+created_time TIME DEFAULT CURRENT_TIME,
+updated_date DATE DEFAULT CURRENT_DATE,
+updated_time TIME DEFAULT CURRENT_TIME,
+
+-- Light bath constraints
+CONSTRAINT check_light_bath_requirements CHECK (
+        (treatment_type = 'light_bath' AND duration_minutes IS NOT NULL AND color IS NOT NULL) OR
+        (treatment_type = 'rod' AND duration_minutes IS NULL AND color IS NULL)
+    )
+);
+
+-- Treatment session records table (updated with timezone-agnostic timestamps)
+
+
+CREATE TABLE scp_treatment_session_records (
+    id SERIAL PRIMARY KEY,
+    treatment_session_id INTEGER NOT NULL REFERENCES scp_treatment_sessions (id) ON DELETE CASCADE,
+    attendance_id INTEGER REFERENCES scp_attendance (id) ON DELETE SET NULL,
+    
+    session_number INTEGER NOT NULL CHECK (session_number > 0),
+    scheduled_date DATE NOT NULL,
+
+-- Session timing converted to separate date/time fields
+start_date DATE,
+start_time TIME,
+end_date DATE,
+end_time TIME,
+status SESSION_RECORD_STATUS DEFAULT 'scheduled',
+notes TEXT,
+missed_reason TEXT,
+performed_by VARCHAR(100),
+
+-- Timezone-agnostic audit fields
+
+
+created_date DATE DEFAULT CURRENT_DATE,
+    created_time TIME DEFAULT CURRENT_TIME,
+    updated_date DATE DEFAULT CURRENT_DATE,
+    updated_time TIME DEFAULT CURRENT_TIME,
+    
+    UNIQUE(treatment_session_id, session_number)
+);
+
+-- Schedule settings table (updated with timezone-agnostic timestamps)
+CREATE TABLE scp_schedule_setting (
+    id SERIAL PRIMARY KEY,
+    day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    max_concurrent_spiritual INTEGER DEFAULT 1,
+    max_concurrent_lightbath_rod INTEGER DEFAULT 1,
+    is_active BOOLEAN DEFAULT true,
+
+-- Timezone-agnostic audit fields
+
+
+created_date DATE DEFAULT CURRENT_DATE,
+    created_time TIME DEFAULT CURRENT_TIME,
+    updated_date DATE DEFAULT CURRENT_DATE,
+    updated_time TIME DEFAULT CURRENT_TIME,
+    
+    UNIQUE (day_of_week)
+);
+
+-- Function to update date/time fields for audit
+CREATE OR REPLACE FUNCTION update_updated_date_time_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_date = CURRENT_DATE;
+    NEW.updated_time = CURRENT_TIME;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Triggers for updating audit timestamps
+CREATE TRIGGER update_patients_modtime
+    BEFORE UPDATE ON scp_patient
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_date_time_column();
+
+CREATE TRIGGER update_attendances_modtime
+    BEFORE UPDATE ON scp_attendance
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_date_time_column();
+
+CREATE TRIGGER update_spiritual_treatment_records_modtime
+    BEFORE UPDATE ON scp_spiritual_treatment_record
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_date_time_column();
+
+CREATE TRIGGER update_scheduling_settings_modtime
+    BEFORE UPDATE ON scp_schedule_setting
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_date_time_column();
+
+CREATE TRIGGER update_treatment_sessions_modtime
+    BEFORE UPDATE ON scp_treatment_sessions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_date_time_column();
+
+CREATE TRIGGER update_treatment_session_records_modtime
+    BEFORE UPDATE ON scp_treatment_session_records
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_date_time_column();
+
+CREATE TRIGGER update_patient_notes_modtime
+    BEFORE UPDATE ON scp_patient_note
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_date_time_column();
+
+-- Enhanced function for treatment record validation
 CREATE OR REPLACE FUNCTION check_one_treatment_record_per_attendance()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -153,7 +335,7 @@ BEGIN
 
     -- Check for existing treatment record
     SELECT * INTO existing_record
-    FROM scp_treatment_record
+    FROM scp_spiritual_treatment_record
     WHERE attendance_id = NEW.attendance_id;
 
     IF FOUND THEN
@@ -165,349 +347,71 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger to enforce one treatment record per attendance
+-- Trigger to enforce one spiritual treatment record per attendance
 CREATE TRIGGER ensure_one_treatment_record_per_attendance
-    BEFORE INSERT ON scp_treatment_record
+    BEFORE INSERT ON scp_spiritual_treatment_record
     FOR EACH ROW
     EXECUTE FUNCTION check_one_treatment_record_per_attendance();
 
--- Treatment sessions table
--- This table tracks planned treatment series (multiple sessions for lightbath/rod)
-CREATE TABLE scp_treatment_sessions ( id SERIAL PRIMARY KEY,
+-- Performance indexes
+CREATE INDEX idx_attendance_scheduled_date ON scp_attendance (scheduled_date);
 
--- Relationships to existing tables
-treatment_record_id INTEGER NOT NULL REFERENCES scp_treatment_record (id) ON DELETE CASCADE,
-attendance_id INTEGER NOT NULL REFERENCES scp_attendance (id) ON DELETE CASCADE,
-patient_id INTEGER NOT NULL REFERENCES scp_patient (id) ON DELETE CASCADE,
+CREATE INDEX idx_attendance_patient_id ON scp_attendance (patient_id);
 
--- Treatment details
-treatment_type TREATMENT_SESSION_TYPE NOT NULL,
-body_locations TEXT, -- JSON array of body locations
-start_date DATE NOT NULL,
-planned_sessions INTEGER NOT NULL CHECK (
-    planned_sessions > 0
-    AND planned_sessions <= 50
-),
-completed_sessions INTEGER DEFAULT 0 CHECK (completed_sessions >= 0),
-end_date DATE,
-status TREATMENT_SESSION_STATUS DEFAULT 'scheduled',
+CREATE INDEX idx_attendance_status ON scp_attendance (status);
 
--- Light bath specific fields (required when treatment_type = 'light_bath')
-duration_minutes INTEGER CHECK (
-    duration_minutes IS NULL
-    OR (
-        duration_minutes > 0
-        AND duration_minutes <= 70
-    )
-),
-color VARCHAR(20),
+CREATE INDEX idx_scp_patient_timezone ON scp_patient (timezone);
 
--- General fields
-notes TEXT,
-created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
--- Constraints to ensure light bath has required fields
-CONSTRAINT check_light_bath_requirements CHECK (
-        (treatment_type = 'light_bath' AND duration_minutes IS NOT NULL AND color IS NOT NULL) OR
-        (treatment_type = 'rod' AND duration_minutes IS NULL AND color IS NULL)
-    )
-);
-
--- Treatment session records table
--- This table tracks individual sessions within a treatment series
-CREATE TABLE scp_treatment_session_records (
-    id SERIAL PRIMARY KEY,
-
--- Relationships
-treatment_session_id INTEGER NOT NULL REFERENCES scp_treatment_sessions (id) ON DELETE CASCADE,
-attendance_id INTEGER REFERENCES scp_attendance (id) ON DELETE SET NULL, -- Link to actual scheduled attendance
-
--- Session details
-session_number INTEGER NOT NULL CHECK (session_number > 0),
-scheduled_date VARCHAR(10) NOT NULL, -- Store as string in YYYY-MM-DD format (timezone-agnostic)
-start_time TIMESTAMP,
-end_time TIMESTAMP,
-status SESSION_RECORD_STATUS DEFAULT 'scheduled',
-
--- Additional tracking
-notes TEXT,
-missed_reason TEXT,
-performed_by VARCHAR(100),
-created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
--- Ensure unique session numbers within a treatment session
-UNIQUE(treatment_session_id, session_number) );
-
--- Operational hours and capacity configuration
-CREATE TABLE scp_schedule_setting (
-    id SERIAL PRIMARY KEY,
-    -- day_of_week: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
-    day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
-    max_concurrent_spiritual INTEGER DEFAULT 1,
-    max_concurrent_lightbath_rod INTEGER DEFAULT 1,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (day_of_week)
-);
-
--- Function to update timestamps
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Triggers for updating timestamps
-CREATE TRIGGER update_patients_modtime
-    BEFORE UPDATE ON scp_patient
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_attendances_modtime
-    BEFORE UPDATE ON scp_attendance
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_treatment_records_modtime
-    BEFORE UPDATE ON scp_treatment_record
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_scheduling_settings_modtime
-    BEFORE UPDATE ON scp_schedule_setting
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_treatment_sessions_modtime
-    BEFORE UPDATE ON scp_treatment_sessions
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_treatment_session_records_modtime
-    BEFORE UPDATE ON scp_treatment_session_records
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Indexes for better performance on new tables
 CREATE INDEX idx_treatment_sessions_treatment_record ON scp_treatment_sessions (treatment_record_id);
-
-CREATE INDEX idx_treatment_sessions_attendance ON scp_treatment_sessions (attendance_id);
 
 CREATE INDEX idx_treatment_sessions_patient ON scp_treatment_sessions (patient_id);
 
-CREATE INDEX idx_treatment_sessions_status ON scp_treatment_sessions (status);
-
-CREATE INDEX idx_treatment_sessions_start_date ON scp_treatment_sessions (start_date);
-
-CREATE INDEX idx_treatment_sessions_type ON scp_treatment_sessions (treatment_type);
-
 CREATE INDEX idx_treatment_session_records_session ON scp_treatment_session_records (treatment_session_id);
 
-CREATE INDEX idx_treatment_session_records_attendance ON scp_treatment_session_records (attendance_id);
+CREATE INDEX idx_scp_patient_note_patient_id ON scp_patient_note (patient_id);
 
-CREATE INDEX idx_treatment_session_records_scheduled_date ON scp_treatment_session_records (scheduled_date);
+CREATE INDEX idx_scp_patient_note_category ON scp_patient_note (category);
 
-CREATE INDEX idx_treatment_session_records_status ON scp_treatment_session_records (status);
+CREATE INDEX idx_scp_patient_note_created_date ON scp_patient_note (created_date);
 
--- Initial scheduling settings
+-- Column comments for timezone support
+COMMENT ON COLUMN scp_patient.timezone IS 'Patient timezone for scheduling and display purposes (IANA timezone format)';
+
+COMMENT ON COLUMN scp_attendance.timezone_override IS 'Optional timezone override for specific attendances (IANA timezone format)';
+
+-- Patient notes table comments
+COMMENT ON TABLE scp_patient_note IS 'Stores patient notes and observations for healthcare providers';
+
+COMMENT ON COLUMN scp_patient_note.patient_id IS 'Reference to the patient this note belongs to';
+
+COMMENT ON COLUMN scp_patient_note.note_content IS 'The actual note content';
+
+COMMENT ON COLUMN scp_patient_note.category IS 'Note category (general, treatment, observation, etc.)';
+
+COMMENT ON COLUMN scp_patient_note.created_date IS 'Date when the note was created (timezone-agnostic)';
+
+COMMENT ON COLUMN scp_patient_note.created_time IS 'Time when the note was created (timezone-agnostic)';
+
+COMMENT ON COLUMN scp_patient_note.updated_date IS 'Date when the note was last updated (timezone-agnostic)';
+
+COMMENT ON COLUMN scp_patient_note.updated_time IS 'Time when the note was last updated (timezone-agnostic)';
+
+-- Default schedule settings for Tuesday operations
 INSERT INTO
     scp_schedule_setting (
         day_of_week,
         start_time,
-        end_time
-    )
-VALUES (2, '19:00', '23:00');
--- Tuesday from 19:00 to 23:00
-
--- Sample data
-INSERT INTO
-    scp_patient (
-        name,
-        phone,
-        priority,
-        treatment_status,
-        birth_date,
-        main_complaint
+        end_time,
+        max_concurrent_spiritual,
+        max_concurrent_lightbath_rod,
+        is_active
     )
 VALUES (
-        'Maria Silva',
-        '(11) 99999-1111',
-        '3',
-        'T',
-        '1980-05-15',
-        'Dores de cabeça'
-    ),
-    (
-        'João Santos',
-        '(11) 99999-2222',
-        '2',
-        'T',
-        '1975-03-22',
-        'Insônia'
-    ),
-    (
-        'Ana Paula',
-        '(11) 99999-3333',
-        '1',
-        'T',
-        '1990-08-10',
-        'Ansiedade'
-    ),
-    (
-        'Carlos Silva',
-        '(11) 99999-4444',
-        '3',
-        'N',
-        '1985-12-05',
-        NULL
-    );
-
--- Sample attendances
-INSERT INTO
-    scp_attendance (
-        patient_id,
-        type,
-        status,
-        scheduled_date,
-        scheduled_time,
-        notes
-    )
-VALUES (
-        1,
-        'spiritual',
-        'scheduled',
-        '2025-07-29',
-        '19:00',
-        'Primeira consulta'
-    ),
-    (
         2,
-        'light_bath',
-        'scheduled',
-        '2025-07-29',
-        '19:00',
-        'Primeira consulta'
-    ),
-    (
-        3,
-        'spiritual',
-        'scheduled',
-        '2025-07-29',
-        '19:30',
-        'Atendimento emergencial'
-    );
-
--- Sample treatment records
-INSERT INTO
-    scp_treatment_record (
-        attendance_id,
-        food,
-        water,
-        ointments,
-        light_bath,
-        rod,
-        spiritual_treatment,
-        return_in_weeks,
-        notes
-    )
-VALUES (
-        1,
-        'Frutas e verduras',
-        '2L por dia',
-        'Pomada calmante',
-        true,
-        false,
-        true,
+        '19:00:00',
+        '21:30:00',
+        4,
         2,
-        'Paciente apresentou melhora. Manter repouso e fazer as orientações'
+        true
     );
-
--- Add performance indexes
-CREATE INDEX idx_attendances_date_time ON scp_attendance (
-    scheduled_date,
-    scheduled_time
-);
-
-CREATE INDEX idx_attendances_patient ON scp_attendance (patient_id);
-
-CREATE INDEX idx_attendances_type_status ON scp_attendance (type, status);
-
-CREATE INDEX idx_attendances_timestamps ON scp_attendance (
-    checked_in_at,
-    started_at,
-    completed_at
-);
-
-CREATE INDEX idx_treatment_records_attendance ON scp_treatment_record (attendance_id);
-
-CREATE INDEX idx_patients_treatment_status ON scp_patient (treatment_status);
-
-CREATE INDEX idx_patients_priority ON scp_patient (priority);
-
-CREATE INDEX idx_patients_name ON scp_patient (name);
-
--- Add data integrity constraints
-ALTER TABLE scp_patient
-ADD CONSTRAINT check_discharge_after_start CHECK (
-    discharge_date IS NULL
-    OR discharge_date >= start_date
-);
-
-ALTER TABLE scp_attendance
-ADD CONSTRAINT check_completion_timeline CHECK (
-    (
-        checked_in_at IS NULL
-        OR checked_in_at >= scheduled_date
-    )
-    AND (
-        started_at IS NULL
-        OR started_at >= checked_in_at
-    )
-    AND (
-        completed_at IS NULL
-        OR completed_at >= started_at
-    )
-    AND (
-        cancelled_at IS NULL
-        OR (
-            completed_at IS NULL
-            AND started_at IS NULL
-            AND checked_in_at IS NULL
-        )
-    )
-);
-
-ALTER TABLE scp_treatment_record
-ADD CONSTRAINT check_return_weeks CHECK (
-    return_in_weeks > 0
-    AND return_in_weeks <= 52
-);
-
--- Database Configuration Settings
-ALTER DATABASE scp_database SET timezone TO 'America/Sao_Paulo';
-
-ALTER DATABASE scp_database
-SET
-    default_text_search_config = 'portuguese';
-
--- Table documentation
-COMMENT ON TABLE scp_patient IS 'Core patient information and status';
-
-COMMENT ON TABLE scp_attendance IS 'Tracks all patient visits and their status';
-
-COMMENT ON TABLE scp_treatment_record IS 'Detailed treatment information and recommendations';
-
-COMMENT ON TABLE scp_schedule_setting IS 'Operational hours and treatment capacity settings';
-
-COMMENT ON TABLE scp_treatment_sessions IS 'Tracks planned treatment series for lightbath and rod therapies';
-
-COMMENT ON TABLE scp_treatment_session_records IS 'Tracks individual session instances within treatment series';
-
--- For detailed query documentation and examples, see /docs/database-queries.md
+-- Tuesday: 7 PM to 9:30 PM

@@ -1,0 +1,137 @@
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { PatientNote } from '../entities/patient-note.entity';
+import { Patient } from '../entities/patient.entity';
+import {
+  CreatePatientNoteDto,
+  UpdatePatientNoteDto,
+  PatientNoteResponseDto,
+} from '../dtos/patient-note.dto';
+
+@Injectable()
+export class PatientNoteService {
+  constructor(
+    @InjectRepository(PatientNote)
+    private patientNoteRepository: Repository<PatientNote>,
+    @InjectRepository(Patient)
+    private patientRepository: Repository<Patient>,
+  ) {}
+
+  async create(
+    patientId: number,
+    createPatientNoteDto: CreatePatientNoteDto,
+  ): Promise<PatientNoteResponseDto> {
+    // Verify patient exists
+    const patient = await this.patientRepository.findOne({
+      where: { id: patientId },
+    });
+
+    if (!patient) {
+      throw new NotFoundException(
+        `Paciente com ID ${patientId} não encontrado`,
+      );
+    }
+
+    // Create the note
+    const note = this.patientNoteRepository.create({
+      patient_id: patientId,
+      note_content: createPatientNoteDto.note_content,
+      category: createPatientNoteDto.category || 'general',
+    });
+
+    const savedNote = await this.patientNoteRepository.save(note);
+    return this.mapToResponseDto(savedNote);
+  }
+
+  async findByPatientId(patientId: number): Promise<PatientNoteResponseDto[]> {
+    // Verify patient exists
+    const patient = await this.patientRepository.findOne({
+      where: { id: patientId },
+    });
+
+    if (!patient) {
+      throw new NotFoundException(
+        `Paciente com ID ${patientId} não encontrado`,
+      );
+    }
+
+    const notes = await this.patientNoteRepository.find({
+      where: { patient_id: patientId },
+      order: {
+        created_date: 'DESC',
+        created_time: 'DESC',
+      },
+    });
+
+    return notes.map(note => this.mapToResponseDto(note));
+  }
+
+  async findOne(patientId: number, noteId: number): Promise<PatientNoteResponseDto> {
+    const note = await this.patientNoteRepository.findOne({
+      where: { id: noteId, patient_id: patientId },
+    });
+
+    if (!note) {
+      throw new NotFoundException(
+        `Nota com ID ${noteId} não encontrada para o paciente ${patientId}`,
+      );
+    }
+
+    return this.mapToResponseDto(note);
+  }
+
+  async update(
+    patientId: number,
+    noteId: number,
+    updatePatientNoteDto: UpdatePatientNoteDto,
+  ): Promise<PatientNoteResponseDto> {
+    const note = await this.patientNoteRepository.findOne({
+      where: { id: noteId, patient_id: patientId },
+    });
+
+    if (!note) {
+      throw new NotFoundException(
+        `Nota com ID ${noteId} não encontrada para o paciente ${patientId}`,
+      );
+    }
+
+    // Update the note
+    if (updatePatientNoteDto.note_content !== undefined) {
+      note.note_content = updatePatientNoteDto.note_content;
+    }
+    if (updatePatientNoteDto.category !== undefined) {
+      note.category = updatePatientNoteDto.category;
+    }
+
+    const updatedNote = await this.patientNoteRepository.save(note);
+    return this.mapToResponseDto(updatedNote);
+  }
+
+  async remove(patientId: number, noteId: number): Promise<void> {
+    const note = await this.patientNoteRepository.findOne({
+      where: { id: noteId, patient_id: patientId },
+    });
+
+    if (!note) {
+      throw new NotFoundException(
+        `Nota com ID ${noteId} não encontrada para o paciente ${patientId}`,
+      );
+    }
+
+    await this.patientNoteRepository.remove(note);
+  }
+
+  private mapToResponseDto(note: PatientNote): PatientNoteResponseDto {
+    return {
+      id: note.id,
+      patient_id: note.patient_id,
+      note_content: note.note_content,
+      category: note.category,
+      created_date: note.created_date,
+      created_time: note.created_time,
+      updated_date: note.updated_date,
+      updated_time: note.updated_time,
+    };
+  }
+}

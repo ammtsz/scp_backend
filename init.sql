@@ -396,7 +396,7 @@ COMMENT ON COLUMN scp_patient_note.updated_date IS 'Date when the note was last 
 
 COMMENT ON COLUMN scp_patient_note.updated_time IS 'Time when the note was last updated (timezone-agnostic)';
 
--- Default schedule settings for Tuesday operations
+-- Default schedule settings for all days of the week
 INSERT INTO
     scp_schedule_setting (
         day_of_week,
@@ -407,11 +407,59 @@ INSERT INTO
         is_active
     )
 VALUES (
+        0,
+        '06:00:00',
+        '23:00:00',
+        4,
         2,
-        '19:00:00',
-        '21:30:00',
+        true
+    ), -- Sunday: 6 AM to 11 PM
+    (
+        1,
+        '06:00:00',
+        '23:00:00',
+        4,
+        2,
+        true
+    ), -- Monday: 6 AM to 11 PM
+    (
+        2,
+        '06:00:00',
+        '23:00:00',
+        4,
+        2,
+        true
+    ), -- Tuesday: 6 AM to 11 PM
+    (
+        3,
+        '06:00:00',
+        '23:00:00',
+        4,
+        2,
+        true
+    ), -- Wednesday: 6 AM to 11 PM
+    (
+        4,
+        '06:00:00',
+        '23:00:00',
+        4,
+        2,
+        true
+    ), -- Thursday: 6 AM to 11 PM
+    (
+        5,
+        '06:00:00',
+        '23:00:00',
+        4,
+        2,
+        true
+    ), -- Friday: 6 AM to 11 PM
+    (
+        6,
+        '06:00:00',
+        '23:00:00',
         4,
         2,
         true
     );
--- Tuesday: 7 PM to 9:30 PM
+-- Saturday: 6 AM to 11 PM

@@ -162,10 +162,35 @@ export class TreatmentSessionService {
   }
 
   async deleteTreatmentSession(id: number): Promise<void> {
+    // First, find the treatment session to ensure it exists
+    const treatmentSession = await this.treatmentSessionRepository.findOne({
+      where: { id },
+      relations: ['sessionRecords']
+    });
+
+    if (!treatmentSession) {
+      throw new NotFoundException(`Treatment session with ID ${id} not found`);
+    }
+
+    // Delete all related attendances created for this treatment session
+    if (treatmentSession.sessionRecords && treatmentSession.sessionRecords.length > 0) {
+      const attendanceIds = treatmentSession.sessionRecords
+        .filter(record => record.attendance_id)
+        .map(record => record.attendance_id);
+
+      if (attendanceIds.length > 0) {
+        await this.attendanceRepository.delete(attendanceIds);
+        console.log(`🗑️ Deleted ${attendanceIds.length} related attendances for treatment session ${id}`);
+      }
+    }
+
+    // Delete the treatment session (session records will be cascade deleted)
     const result = await this.treatmentSessionRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Treatment session with ID ${id} not found`);
     }
+
+    console.log(`✅ Successfully deleted treatment session ${id} and all related records`);
   }
 
   async getAllTreatmentSessions(): Promise<TreatmentSessionResponseDto[]> {

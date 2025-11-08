@@ -38,7 +38,10 @@ export class TreatmentRecordController {
   async create(
     @Body() createTreatmentRecordDto: CreateTreatmentRecordDto,
   ): Promise<UpdateTreatmentRecordResponseDto> {
-    return await this.treatmentRecordService.create(createTreatmentRecordDto);
+    const record = await this.treatmentRecordService.create(createTreatmentRecordDto);
+    return {
+      record: record as TreatmentRecordResponseDto,
+    };
   }
 
   @Get()
@@ -67,10 +70,13 @@ export class TreatmentRecordController {
     @Param('id') id: string,
     @Body() updateTreatmentRecordDto: UpdateTreatmentRecordDto,
   ): Promise<UpdateTreatmentRecordResponseDto> {
-    return await this.treatmentRecordService.update(
+    const record = await this.treatmentRecordService.update(
       +id,
       updateTreatmentRecordDto,
     );
+    return {
+      record: record as TreatmentRecordResponseDto,
+    };
   }
 
   @Delete(':id')

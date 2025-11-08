@@ -17,7 +17,7 @@ import { AppThrottlerGuard } from './common/guards/throttler.guard';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: process.env.NODE_ENV === 'production' ? '.env' : '.env.local',
     }),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],

@@ -145,6 +145,13 @@ export class PatientService {
     }
 
     this.patientRepository.merge(patient, updatePatientDto);
+    
+    // Set discharge_date when treatment_status changes to 'A' (discharged)
+    if (updatePatientDto.treatment_status === TreatmentStatus.DISCHARGED && 
+        patient.treatment_status !== TreatmentStatus.DISCHARGED) {
+      patient.discharge_date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    }
+    
     return await this.patientRepository.save(patient);
   }
 

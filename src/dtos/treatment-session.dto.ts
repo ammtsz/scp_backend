@@ -22,6 +22,10 @@ export class CreateTreatmentSessionDto {
   @IsNotEmpty()
   body_location: string;
 
+  @IsString()
+  @IsOptional()
+  custom_location?: string;
+
   @IsDateString()
   @IsNotEmpty()
   start_date: string;
@@ -75,6 +79,7 @@ export class TreatmentSessionResponseDto {
   patient_id: number;
   treatment_type: TreatmentType;
   body_location: string;
+  custom_location?: string;
   start_date: string;
   planned_sessions: number;
   completed_sessions: number;

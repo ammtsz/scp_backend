@@ -24,6 +24,9 @@ export class TreatmentRecord {
   attendance: Attendance;
 
   @Column({ type: 'text', nullable: true })
+  main_complaint: string;
+
+  @Column({ type: 'text', nullable: true })
   food: string;
 
   @Column({ type: 'text', nullable: true })
@@ -50,28 +53,16 @@ export class TreatmentRecord {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
-  // Enhanced fields for Phase 2: Location Management + Treatment Details
-  @Column('text', { array: true, default: [] })
-  location: string[];
-
+  // Parent/child relationship for treatment episodes
   @Column({ nullable: true })
-  custom_location: string;
-
-  @Column({ default: 1 })
-  quantity: number;
+  parent_treatment_id: number;
 
   // Treatment session times converted to separate date/time fields (timezone-agnostic)
-  @Column({ type: 'date', nullable: true })
-  treatment_start_date: string;
+  @Column({ type: 'time', nullable: true })
+  start_time: string;
 
   @Column({ type: 'time', nullable: true })
-  treatment_start_time: string;
-
-  @Column({ type: 'date', nullable: true })
-  treatment_end_date: string;
-
-  @Column({ type: 'time', nullable: true })
-  treatment_end_time: string;
+  end_time: string;
 
   // Timezone-agnostic audit fields
   @Column({ type: 'date', default: () => 'CURRENT_DATE' })

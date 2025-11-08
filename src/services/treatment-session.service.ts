@@ -274,7 +274,7 @@ export class TreatmentSessionService {
         scheduled_date: record.scheduled_date,
         scheduled_time: '19:30', // Default time for treatment sessions
         status: AttendanceStatus.SCHEDULED,
-        notes: `Treatment session ${record.session_number} of ${plannedSessions} - ${treatmentSession.body_location}`,
+        notes: `Sessão ${record.session_number} de ${plannedSessions} - ${treatmentSession.body_location}`,
       });
       
       const savedAttendance = await this.attendanceRepository.save(attendance);

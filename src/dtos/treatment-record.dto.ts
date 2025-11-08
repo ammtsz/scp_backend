@@ -20,6 +20,23 @@ export class CreateTreatmentRecordDto {
   attendance_id: number;
 
   @ApiPropertyOptional({
+    description: 'Main complaint from the patient',
+    example: 'Pain in lower back',
+  })
+  @IsString()
+  @IsOptional()
+  main_complaint?: string;
+
+  @ApiPropertyOptional({
+    description: 'Treatment status for patient update (not stored in treatment record)',
+    example: 'T',
+    enum: ['N', 'T', 'A', 'F'],
+  })
+  @IsString()
+  @IsOptional()
+  treatment_status?: string;
+
+  @ApiPropertyOptional({
     description: 'Food recommendations',
     example: 'Avoid dairy products',
   })
@@ -96,6 +113,14 @@ export class CreateTreatmentRecordDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Parent treatment ID for linking follow-up consultations to original treatment episode',
+    example: 1,
+  })
+  @IsNumber()
+  @IsOptional()
+  parent_treatment_id?: number;
 }
 
 export class UpdateTreatmentRecordDto {
@@ -108,6 +133,23 @@ export class UpdateTreatmentRecordDto {
   attendance_id?: number;
 
   @ApiPropertyOptional({
+    description: 'Main complaint from the patient',
+    example: 'Pain in lower back',
+  })
+  @IsString()
+  @IsOptional()
+  main_complaint?: string;
+
+  @ApiPropertyOptional({
+    description: 'Treatment status for patient update (not stored in treatment record)',
+    example: 'T',
+    enum: ['N', 'T', 'A', 'F'],
+  })
+  @IsString()
+  @IsOptional()
+  treatment_status?: string;
+
+  @ApiPropertyOptional({
     description: 'Food recommendations',
     example: 'Avoid dairy products',
   })
@@ -184,6 +226,14 @@ export class UpdateTreatmentRecordDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Parent treatment ID for linking follow-up consultations to original treatment episode',
+    example: 1,
+  })
+  @IsNumber()
+  @IsOptional()
+  parent_treatment_id?: number;
 }
 
 export class TreatmentRecordResponseDto {
@@ -200,6 +250,12 @@ export class TreatmentRecordResponseDto {
   attendance_id: number;
 
   @ApiPropertyOptional({
+    description: 'Main complaint from the patient',
+    example: 'Pain in lower back',
+  })
+  main_complaint?: string;
+
+  @ApiPropertyOptional({
     description: 'Food recommendations',
     example: 'Avoid dairy products',
   })
@@ -253,6 +309,12 @@ export class TreatmentRecordResponseDto {
     example: 'Patient showed improvement in energy levels',
   })
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Parent treatment ID for linking follow-up consultations to original treatment episode',
+    example: 1,
+  })
+  parent_treatment_id?: number;
 
   @ApiProperty({
     description: 'Record creation date',

@@ -46,15 +46,16 @@ describe('TreatmentRecordService', () => {
     light_bath_color: 'verde',
     rod: false,
     spiritual_treatment: true,
-    location: ['Main Hall'],
-    custom_location: null,
-    quantity: 1,
-    treatment_start_time: new Date(),
-    treatment_end_time: new Date(),
+    start_time: '10:00',
+    end_time: '11:00',
     return_in_weeks: 2,
     notes: 'Patient responded well to treatment',
-    created_at: new Date(),
-    updated_at: new Date(),
+    main_complaint: '',
+    parent_treatment_id: 0,
+    created_date: '',
+    created_time: '',
+    updated_date: '',
+    updated_time: ''
   };
 
   const mockRepository = {

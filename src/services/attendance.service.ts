@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { Attendance } from '../entities/attendance.entity';
 import {
   CreateAttendanceDto,
@@ -42,10 +42,13 @@ export class AttendanceService {
   async findByDate(date: string): Promise<Attendance[]> {
     // Date is already in YYYY-MM-DD string format, use directly
     return await this.attendanceRepository.find({
-      where: { scheduled_date: date },
+      where: {
+      scheduled_date: date,
+      status: Not(AttendanceStatus.CANCELLED),
+      },
       relations: ['patient'],
       order: {
-        scheduled_time: 'ASC',
+      scheduled_time: 'ASC',
       },
     });
   }
@@ -153,7 +156,7 @@ export class AttendanceService {
     return updatedAttendance;
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number, cancellationReason?: string): Promise<void> {
     // Try to find the attendance first to check status
     const attendance = await this.attendanceRepository.findOne({
       where: { id },
@@ -168,13 +171,41 @@ export class AttendanceService {
       throw new InvalidAttendanceStatusTransitionException(
         id,
         attendance.status,
-        'DELETED',
+        'CANCELLED',
       );
     }
 
-    const result = await this.attendanceRepository.delete(id);
-    if (result.affected === 0) {
-      throw new ResourceNotFoundException('Attendance', id);
+    // Soft delete: Change status to cancelled instead of hard delete
+    attendance.status = AttendanceStatus.CANCELLED;
+    attendance.cancelled_date = new Date().toISOString().split('T')[0];
+    attendance.cancelled_time = new Date().toTimeString().split(' ')[0].substring(0, 8);
+    attendance.absence_justified = cancellationReason ? true : false;
+    attendance.absence_notes = cancellationReason || 'Cancelado pelo sistema';
+    
+    await this.attendanceRepository.save(attendance);
+  }
+
+  async updateAbsenceJustifications(
+    absenceJustifications: Array<{
+      attendanceId: number;
+      justified: boolean;
+      justification?: string;
+    }>
+  ): Promise<void> {
+    for (const absence of absenceJustifications) {
+      const attendance = await this.attendanceRepository.findOne({
+        where: { id: absence.attendanceId }
+      });
+
+      if (attendance) {
+        attendance.status = AttendanceStatus.CANCELLED;
+        attendance.cancelled_date = new Date().toISOString().split('T')[0];
+        attendance.cancelled_time = new Date().toTimeString().split(' ')[0].substring(0, 8);
+        attendance.absence_justified = absence.justified;
+        attendance.absence_notes = absence.justification || null;
+        
+        await this.attendanceRepository.save(attendance);
+      }
     }
   }
 

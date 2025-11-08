@@ -113,11 +113,8 @@ CREATE TABLE scp_attendance (
 scheduled_date DATE NOT NULL, scheduled_time TIME NOT NULL,
 
 -- Event timestamps converted to separate date/time fields
-checked_in_date DATE,
 checked_in_time TIME,
-started_date DATE,
 started_time TIME,
-completed_date DATE,
 completed_time TIME,
 cancelled_date DATE,
 cancelled_time TIME,
@@ -139,6 +136,8 @@ created_date DATE DEFAULT CURRENT_DATE,
 CREATE TABLE scp_spiritual_treatment_record (
     id SERIAL PRIMARY KEY,
     attendance_id INTEGER REFERENCES scp_attendance (id) ON DELETE CASCADE UNIQUE,
+    main_complaint TEXT,
+    treatment_status VARCHAR(1) CHECK (treatment_status IS NULL OR treatment_status IN ('N', 'T', 'A', 'F')),
     food TEXT,
     water TEXT,
     ointments TEXT,
@@ -149,16 +148,11 @@ CREATE TABLE scp_spiritual_treatment_record (
     return_in_weeks INTEGER CHECK (return_in_weeks > 0 AND return_in_weeks <= 52),
     notes TEXT,
 
--- Location and quantity fields
-location TEXT [] DEFAULT '{}',
-custom_location TEXT,
-quantity INTEGER DEFAULT 1,
+-- Parent/child relationship for treatment episodes
+parent_treatment_id INTEGER REFERENCES scp_spiritual_treatment_record (id) ON DELETE SET NULL,
 
 -- Treatment session times converted to separate date/time fields
-treatment_start_date DATE,
-treatment_start_time TIME,
-treatment_end_date DATE,
-treatment_end_time TIME,
+start_time TIME, end_time TIME,
 
 -- Timezone-agnostic audit fields
 created_date DATE DEFAULT CURRENT_DATE,
@@ -178,6 +172,7 @@ CREATE TABLE scp_treatment_sessions (
     
     treatment_type TREATMENT_SESSION_TYPE NOT NULL,
     body_locations TEXT,
+    custom_location TEXT,
     start_date DATE NOT NULL,
     planned_sessions INTEGER NOT NULL CHECK (planned_sessions > 0 AND planned_sessions <= 50),
     completed_sessions INTEGER DEFAULT 0 CHECK (completed_sessions >= 0),
@@ -220,9 +215,7 @@ CREATE TABLE scp_treatment_session_records (
     scheduled_date DATE NOT NULL,
 
 -- Session timing converted to separate date/time fields
-start_date DATE,
 start_time TIME,
-end_date DATE,
 end_time TIME,
 status SESSION_RECORD_STATUS DEFAULT 'scheduled',
 notes TEXT,
@@ -374,6 +367,10 @@ CREATE INDEX idx_scp_patient_note_category ON scp_patient_note (category);
 
 CREATE INDEX idx_scp_patient_note_created_date ON scp_patient_note (created_date);
 
+CREATE INDEX idx_spiritual_treatment_parent ON scp_spiritual_treatment_record (parent_treatment_id);
+
+CREATE INDEX idx_spiritual_treatment_status ON scp_spiritual_treatment_record (treatment_status);
+
 -- Column comments for timezone support
 COMMENT ON COLUMN scp_patient.timezone IS 'Patient timezone for scheduling and display purposes (IANA timezone format)';
 
@@ -396,6 +393,92 @@ COMMENT ON COLUMN scp_patient_note.updated_date IS 'Date when the note was last 
 
 COMMENT ON COLUMN scp_patient_note.updated_time IS 'Time when the note was last updated (timezone-agnostic)';
 
+-- Treatment timing and hierarchy comments
+COMMENT ON COLUMN scp_attendance.checked_in_time IS 'Check-in time (date derived from attendance context)';
+
+COMMENT ON COLUMN scp_attendance.started_time IS 'Treatment start time (date derived from attendance context)';
+
+COMMENT ON COLUMN scp_attendance.completed_time IS 'Treatment completion time (date derived from attendance context)';
+
+COMMENT ON COLUMN scp_spiritual_treatment_record.main_complaint IS 'Main complaint from the patient during this specific consultation session';
+
+COMMENT ON COLUMN scp_spiritual_treatment_record.treatment_status IS 'Patient treatment status at time of consultation: N=New, T=Treatment, A=Discharged, F=Missed';
+
+COMMENT ON COLUMN scp_spiritual_treatment_record.parent_treatment_id IS 'Links follow-up consultations to original treatment episode. NULL = main/first treatment';
+
+COMMENT ON COLUMN scp_spiritual_treatment_record.start_time IS 'Treatment start time (date derived from attendance_date context)';
+
+COMMENT ON COLUMN scp_spiritual_treatment_record.end_time IS 'Treatment end time (date derived from attendance_date context)';
+
+COMMENT ON COLUMN scp_treatment_sessions.custom_location IS 'Custom body location when standard locations are not sufficient';
+
+COMMENT ON COLUMN scp_treatment_sessions.body_locations IS 'Standard body locations for this treatment session';
+
+COMMENT ON COLUMN scp_treatment_sessions.planned_sessions IS 'Number of sessions planned for this treatment (quantity)';
+
+COMMENT ON COLUMN scp_treatment_session_records.start_time IS 'Session start time (date derived from scheduled_date context)';
+
+COMMENT ON COLUMN scp_treatment_session_records.end_time IS 'Session end time (date derived from scheduled_date context)';
+
+-- Helper function to find root treatment from migration 009
+CREATE OR REPLACE FUNCTION get_root_treatment_id(treatment_id INTEGER) 
+RETURNS INTEGER AS $$
+DECLARE
+    current_id INTEGER := treatment_id;
+    parent_id INTEGER;
+BEGIN
+    LOOP
+        SELECT parent_treatment_id INTO parent_id 
+        FROM scp_spiritual_treatment_record 
+        WHERE id = current_id;
+        
+        IF parent_id IS NULL THEN
+            RETURN current_id;
+        END IF;
+        
+        current_id := parent_id;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION get_root_treatment_id (INTEGER) IS 'Returns the root (main) treatment ID for any treatment in the hierarchy';
+
+-- Treatment episodes view from migration 009
+CREATE OR REPLACE VIEW treatment_episodes AS
+SELECT
+    t1.id as root_treatment_id,
+    t1.attendance_id as main_attendance_id,
+    t1.notes as episode_notes,
+    a1.scheduled_date as episode_start_date,
+    COUNT(t2.id) + 1 as total_consultations,
+    ARRAY_AGG(
+        t2.id
+        ORDER BY a2.scheduled_date
+    ) FILTER (
+        WHERE
+            t2.id IS NOT NULL
+    ) as followup_treatment_ids,
+    MAX(a2.scheduled_date) as last_consultation_date,
+    CASE
+        WHEN MAX(t2.return_in_weeks) > 0
+        OR t1.return_in_weeks > 0 THEN 'active'
+        ELSE 'completed'
+    END as episode_status
+FROM
+    scp_spiritual_treatment_record t1
+    LEFT JOIN scp_attendance a1 ON t1.attendance_id = a1.id
+    LEFT JOIN scp_spiritual_treatment_record t2 ON t2.parent_treatment_id = t1.id
+    LEFT JOIN scp_attendance a2 ON t2.attendance_id = a2.id
+WHERE
+    t1.parent_treatment_id IS NULL -- Only root treatments
+GROUP BY
+    t1.id,
+    t1.attendance_id,
+    t1.notes,
+    a1.scheduled_date;
+
+COMMENT ON VIEW treatment_episodes IS 'Provides episode-level view of spiritual treatments with hierarchy information';
+
 -- Default schedule settings for all days of the week
 INSERT INTO
     scp_schedule_setting (
@@ -410,56 +493,56 @@ VALUES (
         0,
         '06:00:00',
         '23:00:00',
-        4,
-        2,
+        10,
+        10,
         true
     ), -- Sunday: 6 AM to 11 PM
     (
         1,
         '06:00:00',
         '23:00:00',
-        4,
-        2,
+        10,
+        10,
         true
     ), -- Monday: 6 AM to 11 PM
     (
         2,
         '06:00:00',
         '23:00:00',
-        4,
-        2,
+        10,
+        10,
         true
     ), -- Tuesday: 6 AM to 11 PM
     (
         3,
         '06:00:00',
         '23:00:00',
-        4,
-        2,
+        10,
+        10,
         true
     ), -- Wednesday: 6 AM to 11 PM
     (
         4,
         '06:00:00',
         '23:00:00',
-        4,
-        2,
+        10,
+        10,
         true
     ), -- Thursday: 6 AM to 11 PM
     (
         5,
         '06:00:00',
         '23:00:00',
-        4,
-        2,
+        10,
+        10,
         true
     ), -- Friday: 6 AM to 11 PM
     (
         6,
         '06:00:00',
         '23:00:00',
-        4,
-        2,
+        10,
+        10,
         true
     );
 -- Saturday: 6 AM to 11 PM

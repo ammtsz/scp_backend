@@ -268,14 +268,32 @@ export class AttendanceController {
     description: 'ID of the attendance record to delete',
     type: 'number',
   })
-  async remove(@Param('id') id: string): Promise<void> {
-    this.logger.log(`Deleting attendance with ID ${id}`);
+  async remove(
+    @Param('id') id: string,
+    @Body() body?: { cancellation_reason?: string }
+  ): Promise<void> {
+    this.logger.log(`Cancelling attendance with ID ${id}`);
     const attendance = await this.attendanceService.findOne(+id);
     if (!attendance) {
       this.logger.warn(`Attendance with ID ${id} not found`);
       throw new ResourceNotFoundException('Attendance', id);
     }
-    await this.attendanceService.remove(+id);
-    this.logger.log(`Successfully deleted attendance ${id}`);
+    await this.attendanceService.remove(+id, body?.cancellation_reason);
+    this.logger.log(`Successfully cancelled attendance ${id}`);
+  }
+
+  @Post('absence-justifications')
+  @HttpCode(HttpStatus.OK)
+  @ApiAttendanceOperation('Update absence justifications for multiple attendances')
+  async updateAbsenceJustifications(
+    @Body() body: Array<{
+      attendanceId: number;
+      justified: boolean;
+      justification?: string;
+    }>
+  ): Promise<void> {
+    this.logger.log(`Updating absence justifications for ${body.length} attendances`);
+    await this.attendanceService.updateAbsenceJustifications(body);
+    this.logger.log('Successfully updated absence justifications');
   }
 }

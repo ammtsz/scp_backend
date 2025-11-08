@@ -64,6 +64,9 @@ export class TreatmentSession {
   @Column({ name: 'body_locations', type: 'text' })
   body_location: string;
 
+  @Column({ type: 'text', nullable: true })
+  custom_location: string;
+
   @Column({ type: 'date' })
   start_date: string;
 

@@ -124,7 +124,15 @@ export class TreatmentSessionRecordService {
     }
 
     record.status = SessionRecordStatus.COMPLETED;
-    record.end_time = new Date().toTimeString().split(' ')[0]; // HH:MM:SS format
+    
+    // Set start_time if not already set
+    if (!record.start_time) {
+      record.start_time = new Date().toTimeString().split(' ')[0].substring(0, 8); // HH:MM:SS format
+    }
+    
+    // Set end_time for completion
+    record.end_time = new Date().toTimeString().split(' ')[0].substring(0, 8); // HH:MM:SS format
+    
     if (notes) record.notes = notes;
 
     const updated = await this.sessionRecordRepository.save(record);

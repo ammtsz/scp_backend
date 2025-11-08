@@ -42,21 +42,12 @@ export class Attendance {
   @Column({ type: 'time' })
   scheduled_time: string; // Store as HH:MM:SS string
 
-  // Timezone-agnostic event date/time pairs
-  @Column({ type: 'date', nullable: true })
-  checked_in_date: string;
-
+  // Timezone-agnostic event times (dates derived from context)
   @Column({ type: 'time', nullable: true })
   checked_in_time: string;
 
-  @Column({ type: 'date', nullable: true })
-  started_date: string;
-
   @Column({ type: 'time', nullable: true })
   started_time: string;
-
-  @Column({ type: 'date', nullable: true })
-  completed_date: string;
 
   @Column({ type: 'time', nullable: true })
   completed_time: string;
